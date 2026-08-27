@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kanggiten · Prize Engine</title>
+    <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css?v=recipes" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="rail" aria-label="Primary">
+        <div class="brand">
+          <img class="brand-mark" src="/assets/logo-mark.svg" width="40" height="40" alt="" />
+          <div>
+            <p class="wordmark">Kanggiten</p>
+            <h1>Prize Engine</h1>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item is-active" data-view="generate" type="button">
+            <span class="nav-dot"></span>Generate
+          </button>
+          <button class="nav-item" data-view="analyze" type="button">
+            <span class="nav-dot"></span>Analyze
+          </button>
+          <button class="nav-item" data-view="optimize" type="button">
+            <span class="nav-dot"></span>Optimize
+          </button>
+          <button class="nav-item" data-view="recalibrate" type="button">
+            <span class="nav-dot"></span>Recalibrate
+          </button>
+        </nav>
+        <p class="rail-note">The new standard of iGaming platform.</p>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="overline" id="view-kicker">New structure</p>
+            <h2 id="view-title">Generate a prize table</h2>
+          </div>
+          <p class="hint" id="view-hint">Pick a recipe, then publish.</p>
+        </header>
+
+        <section class="stage" id="view-generate">
+          <form class="panel form" id="generate-form">
+            <div class="segment" role="radiogroup" aria-label="Event type">
+              <button type="button" class="segment-btn is-selected" data-context="slot">Slot / casino</button>
+              <button type="button" class="segment-btn" data-context="ticketed">Ticketed</button>
+            </div>
+            <p class="lede" id="context-hint">Guaranteed pool. Paid places you set. No buy-in, no field size — this is not a poker table.</p>
+
+            <div class="recipes" id="recipe-list" role="group" aria-label="Race recipes"></div>
+
+            <label class="toggle" data-when="slot" id="known-field-row">
+              <input type="checkbox" id="known-field" />
+              <span>I have an expected field size</span>
+            </label>
+
+            <div class="grid-2">
+              <label>Currency
+                <select name="currency">
+                  <option value="EUR" selected>EUR</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </label>
+              <label>Style
+                <select name="style">
+                  <option value="balanced" selected>Balanced — keep the field spinning</option>
+                  <option value="top_heavy">Jackpot — marketing first prize</option>
+                  <option value="flat">Flat — daily / weekly leaderboard</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="grid-2">
+              <label>Prize pool
+                <input name="prize_pool" type="number" min="1" step="0.01" required />
+              </label>
+              <label data-when="ticket" hidden>Buy-in
+                <input name="entry_fee" type="number" min="0" step="0.01" value="0" />
+              </label>
+            </div>
+
+            <div class="grid-2">
+              <label data-when="field" hidden>Expected players
+                <input name="entrants" type="number" min="1" step="1" value="80" />
+              </label>
+              <label id="winners-value-wrap"><span data-label="winners">Paid places</span>
+                <input name="winners_value" type="number" min="1" step="0.01" required />
+              </label>
+            </div>
+
+            <label data-when="field" hidden>Winner mode
+              <select name="winners_mode">
+                <option value="count" selected>Exact count</option>
+                <option value="percentage">Percentage of field</option>
+              </select>
+            </label>
+
+            <details class="advanced" id="advanced-fields">
+              <summary>Advanced</summary>
+              <div class="advanced-body">
+                <div class="grid-2">
+                  <label>Min cash
+                    <select name="min_mode">
+                      <option value="fixed" selected>Fixed amount</option>
+                      <option value="automatic">Automatic</option>
+                      <option value="entry_multiple" data-when="ticket" hidden>Buy-in multiple</option>
+                    </select>
+                  </label>
+                  <label id="min-value-wrap"><span data-label="min">Min amount</span>
+                    <input name="min_value" type="number" min="0" step="0.01" value="1" />
+                  </label>
+                </div>
+                <div class="grid-2">
+                  <label>Max widget tiers
+                    <input name="max_buckets" type="number" min="3" max="20" value="12" />
+                  </label>
+                  <label>Nice numbers
+                    <select name="nice_profile">
+                      <option value="casino" selected>Casino cashier</option>
+                      <option value="standard">Standard</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </details>
+
+            <div class="suggestions" id="generate-suggestions" hidden></div>
+
+            <button class="btn primary" type="submit" id="generate-submit">Generate table</button>
+            <p class="micro">Ctrl + Enter submits. Pool is paid exactly — no silent rounding.</p>
+          </form>
+
+          <div class="results" id="generate-results" data-empty="true">
+            <div class="empty">
+              <img class="empty-mark" src="/assets/logo-mark.svg" width="88" height="88" alt="" />
+              <p>No table yet. Pick a recipe and generate a cashier-ready ladder.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stage is-hidden" id="view-analyze">
+          <form class="panel form" id="analyze-form">
+            <p class="lede">Paste a published ladder. We score niceness, compactness, and mid-field value.</p>
+            <div class="row-actions">
+              <button type="button" class="btn ghost" data-sample="analyze">Load daily sample</button>
+            </div>
+            <label>Existing payouts (JSON)
+              <textarea name="payload" rows="16" required></textarea>
+            </label>
+            <button class="btn primary" type="submit">Analyze ladder</button>
+          </form>
+          <div class="results" id="analyze-results" data-empty="true">
+            <div class="empty">
+              <img class="empty-mark" src="/assets/logo-mark.svg" width="88" height="88" alt="" />
+              <p>Drop in a live widget table to see what a cashier would flag.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stage is-hidden" id="view-optimize">
+          <form class="panel form" id="optimize-form">
+            <p class="lede">Keep the pool and paid places. Rebuild a cleaner widget without changing the race contract.</p>
+            <div class="row-actions">
+              <button type="button" class="btn ghost" data-sample="optimize">Load daily sample</button>
+            </div>
+            <label>Existing payouts (JSON)
+              <textarea name="payload" rows="16" required></textarea>
+            </label>
+            <button class="btn primary" type="submit">Optimize</button>
+          </form>
+          <div class="results" id="optimize-results" data-empty="true">
+            <div class="empty">
+              <img class="empty-mark" src="/assets/logo-mark.svg" width="88" height="88" alt="" />
+              <p>Optimization keeps the guarantee and rewrites the published tiers.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stage is-hidden" id="view-recalibrate">
+          <form class="panel form" id="recalibrate-form">
+            <p class="lede">Same philosophy, new guarantee — for pools that grow with late buy-ins.</p>
+            <div class="row-actions">
+              <button type="button" class="btn ghost" data-sample="recalibrate">Load daily sample</button>
+            </div>
+            <label>New prize pool
+              <input name="new_prize_pool" type="number" min="1" step="0.01" value="25000" required />
+            </label>
+            <label>Base payouts (JSON)
+              <textarea name="payload" rows="14" required></textarea>
+            </label>
+            <button class="btn primary" type="submit">Recalibrate</button>
+          </form>
+          <div class="results" id="recalibrate-results" data-empty="true">
+            <div class="empty">
+              <img class="empty-mark" src="/assets/logo-mark.svg" width="88" height="88" alt="" />
+              <p>When the guarantee moves, the widget should still look like the same race.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+    <script src="/assets/app.js?v=recipes"></script>
+  </body>
+</html>

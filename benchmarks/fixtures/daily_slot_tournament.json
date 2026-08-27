@@ -1,0 +1,8 @@
+{
+  "currency": "EUR",
+  "prize_pool": 50000,
+  "entrants": 2000,
+  "entry_fee": 25,
+  "winners": {"mode": "percentage", "value": 15},
+  "style": "balanced"
+}

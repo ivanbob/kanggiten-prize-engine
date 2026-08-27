@@ -1,0 +1,14 @@
+{
+  "currency": "EUR",
+  "prize_pool": 10000,
+  "entrants": 100,
+  "entry_fee": 100,
+  "payouts": [
+    {"from": 1, "to": 1, "amount": 2500},
+    {"from": 2, "to": 2, "amount": 1500},
+    {"from": 3, "to": 3, "amount": 1000},
+    {"from": 4, "to": 5, "amount": 750},
+    {"from": 6, "to": 10, "amount": 400},
+    {"from": 11, "to": 20, "amount": 175}
+  ]
+}

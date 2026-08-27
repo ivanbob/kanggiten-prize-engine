@@ -1,0 +1,728 @@
+
+===== PAGE 1 =====
+Logobook
+Version 1
+2026
+===== PAGE 2 =====
+Logobook
+The guide is an instruction manual for using the 
+corporate identity.
+
+The corporate identity is based on several core 
+elements: the logo, colors, font, and pattern. 
+They serve as the starting point for handling 
+any design tasks.
+
+We recommend ensuring compliance with the 
+established standards that company 
+employees, designers, and printers work with.
+===== PAGE 3 =====
+Logotype
+These are the basic rules for using the logo in all visual manifestations 
+and channels for the brand. Color versions for printing for different 
+application technologies are selected and agreed separately.
+01
+===== PAGE 4 =====
+Logotype. Main horizontal
+Key elements
+
+Graphic mark: A circular emblem in rich 
+purple, located on the left.
+Text part: The brand name ˝Kanggiten˛, 
+, 
+executed in black in a modern font.
+Construction and proportions
+
+Composition: A classic horizontal structure (icon + word).
+Geometry: The basis of the mark is a perfect circle. Inside it 
+are three identically shaped white ˝chevrons˛ that form a rhythmic pattern.
+Balance: The height of the graphic mark is visually coordinated with the height of the capital letter ˝K˛, wh
+, which 
+creates a stable and harmonious horizon line.
+01
+Meanings of the graphic element
+
+Motion and dynamics: Chevrons directed to the right 
+symbolize progress, a vector of development, and speed.
+Reference to the name: The shape of the chevrons visually 
+resembles the right part of the letter "K," which creates a 
+subconscious connection with the name.
+Globality: The shape of a circle is associated with integrity, 
+community, or global market reach.
+===== PAGE 5 =====
+Logotype. Main vertical
+How to use
+
+The vertical (centric) version of the Kanggiten 
+logo is more compact in width, but requires 
+more free space above and below. It should be 
+chosen in the following cases:
+Narrow digital formats
+
+Mobile versions of sites: When there is little horizontal space 
+on the smartphone screen, a vertical logo in a ˝cap˛ or on the 
+footer looks neater.
+
+Splash screens: When loading mobile applications, a centric composition better keeps the userˇs
+s focus.
+01
+Merch and printed products
+
+Clothing: Print on the chest (T-shirts, hoodies) or on caps. 
+Vertical construction fits better into the anatomical 
+proportions of the clothing.
+
+Vertical banners (roll-ups): When the layout is stretched 
+upwards, this logo helps fill the space logically and 
+expressively.
+===== PAGE 6 =====
+Logotype. Save zone
+01
+This rule applies to any 
+version of the logo.
+The safe are around the logo is clear space, free from any other graphic elements, text, or 
+images, that ensures its visual integrity, legibility, and recognizability.
+
+This term is also known as ˝clear space˛ or ˝exclusion zone˛ and is typically defined by the size of one of the logoˇs own elements (for example, the height of the letter ˝K˛). Adhering to this zone guarantees that the logo will always be noticeable and will not be ˝lost˛ amon
+ among 
+other content, regardless of where it is placed.
+Logobook
+===== PAGE 7 =====
+Logotype
+<40px
+Minimum allowable size 40px H
+01
+===== PAGE 8 =====
+Logotype
+01
+Avatar
+Icon
+Favicon
+There is an opportunity to 
+use inverted versions
+Avatars used on social networks, mobile apps, and websites (favicons) all serve the same 
+function: to visually identify and represent a brand. They are small graphic elements that 
+act as a business card in the online world.
+
+Therefore, the purpose of all these elements is to ensure a consistent and recognizable 
+visual identity for the brand, helping users easily find, remember, and interact with it in the 
+digital space.
+Logobook
+===== PAGE 9 =====
+Logotype. Prohibited use
+Do not use gradients€
+Use only the colors that are in the guideline€
+Do not transform parts of logo€
+Do not change proportion€
+Do not add outlines€
+Do not use transparency. A colored sign and a 
+colored background close to each other in terms 
+of color cannot be used€
+01
+Donˇt place a symbol in other spots€
+Do not use additional effects
+Do not rotate the logo€
+===== PAGE 10 =====
+Logotype. Moochrome
+01
+Use the specified range of color contrast in the
+logo. Use monochrome only as a last resort.
+This rule applies to any 
+version of the logo.
+Use the specified range of color contrast in the
+logo. Use monochrome only as a last resort.
+This rule applies to any 
+version of the logo.
+===== PAGE 11 =====
+Logo on a complex background
+Opacity 100%
+Opacity 10-90%
+Priority use
+Priority use
+Possible use
+01
+Prohibited use
+Prohibited use
+Prohibited use
+===== PAGE 12 =====
+Logotype
+Priority use
+Priority use
+Possible use
+Inversion
+Inversion
+01
+===== PAGE 13 =====
+Logotype. Prohibited use
+01
+===== PAGE 14 =====
+Logotype. Prohibited use
+01
+===== PAGE 15 =====
+Colors
+These are the basic corporate colors for use across all visuals and 
+channels for the brand. Print versions of colors for different application 
+technologies are selected and agreed upon separately.
+02
+===== PAGE 16 =====
+Brand colors
+Electric Violet
+120.29.255
+781DFF
+53.89.0.0
+PANTONE 2091 !
+02
+000000
+Black
+FFFFFF
+White
+===== PAGE 17 =====
+Complementary colors. Accents
+90-95%
+781DFF
+Electric Violet
+02
+5-10%
+D0FF43
+Lime
+===== PAGE 18 =====
+Complementary colors. Light and reflexes
+02
+FF43D0
+Bright Pink
+D043FF
+90
+80
+70
+60
+50
+40
+30
+20
+10
+Electric Purple
+===== PAGE 19 =====
+Complementary colors. Data visualization
+02
+1DA4FF
+1DFF78
+FF781D
+43D0FF
+FFE91D
+43FFD0
+===== PAGE 20 =====
+Gradients
+0
+0
+781DFF
+781DFF
+Linear
+Linear
+000000
+D043FF
+100
+100
+781DFF
+FF43D0
+02
+0
+Linear
+100
+===== PAGE 21 =====
+Gradients
+7143FF
+D043FF
+D0FF43
+FF43D0
+02
+D043FF
+D0FF43
+===== PAGE 22 =====
+Fonts
+These are the basic corporate fonts for use across all visuals 
+and channels for the brand.
+03
+===== PAGE 23 =====
+Fonts
+03
+Main font for the title
+Font types
+!ontrasting font pairs
+Maven Pro
+Regular
+Medium
+Bold
+Black
+Regular
+Bold
+Regular
+Black
+Medium
+Black
+Medium
+Bold
+Bold
+Black
+Maven Pro is a sans-serif typeface with unique 
+curvature and flowing rhythm. Its forms make it 
+very distinguishable and legible when in context. 
+It blends styles of many great typefaces and is 
+suitable for any design medium. Maven Proˇs 
+modern design is great for the web and fits in 
+any environment.
+
+Updated in January 2019 with a Variable Font 
+"Weight" axis.
+
+
+
+Copyright 2011 The Maven Pro Project Authors  
+with Reserved Font Name "Maven Pro".
+
+This Font Software is licensed under the SIL 
+Open Font License, Version 1.1.
+For typing texts, ads, posters, e-mails, UI ...
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+˘?ˇ˝!˛(%)[#]{@}/&<-+~=>®©$¬£¥¢:;,.*
+0
+£¥¢:;,.*
+0123456789
+===== PAGE 24 =====
+Fonts
+03
+Additional font for texts
+Font types
+!ontrasting font pairs
+Nunito Sans
+Regular
+Medium
+Bold
+Black
+Regular
+Bold
+Medium
+Black
+Medium
+Bold
+Bold
+Black
+For typing texts, e-mails, ...
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz
+˘?ˇ˝!˛(%)[#]{@}/&<-+~=>®©$¬£¥¢:;,.*
+0
+£¥¢:;,.*
+0123456789
+Nunito is a well balanced sans serif typeface 
+superfamily, with 2 versions: The project began 
+with Nunito, created by Vernon Adams as a 
+rounded terminal sans serif for display 
+typography. 
+
+Jacques Le Bailly extended it to a full set of 
+weights, and an accompanying regular non-
+rounded terminal version, Nunito Sans.
+===== PAGE 25 =====
+Typography
+The basic styling includes styles for beautifully 
+formatting various types of text  headings, body text, quotes, lists, contact information. Emphasis styles are also provided 
+ links, bold or italic fonts, 
+and additional text. The style is concise and simple. 
+For example, this is how the heading system from 
+h1 to h7 looks.
+Remember that the main goal of 
+text hierarchy is to make the text 
+easy to perceive.
+These sizes are only approximate. The choice of specific values 
+depends on the font type, layout size, and other factors. Itˇs s 
+important to ensure sufficient contrast between headings and body 
+text. The spacing between text blocks and lines should be adequate 
+for comfortable reading.
+
+For each individual task, you need to choose your own approach and 
+rely on the objective when selecting font sizes. Headings, body text, 
+CTA (Call to Action) text, and additional information should be 
+clearly visible and easy to read.
+03
+Typography 
+is the art and technique of arranging printed text using 
+fonts. It plays a key role in creating effective and 
+aesthetically pleasing visual communication.
+Structuring text hierarchy is a key element of typography that helps the reader 
+quickly navigate the text and understand its structure.
+Example
+h1. Bootstrap heading
+
+h2. Bootstrap heading
+
+h3. Bootstrap heading
+
+h4. Bootstrap heading
+
+h5. Bootstrap heading
+
+h6. Bootstrap heading
+
+h7. Bootstrap heading
+36 pt
+
+30 pt
+
+24 pt
+
+18 pt
+
+14 pt
+
+12 pt
+
+8 pt
+===== PAGE 26 =====
+Typography. Slogan
+A
+Priority use
+The new standard
+of iGaming platform
+B The new
+standard of iGaming
+platform
+Accent with color
+The new standard
+of iGaming platform
+The new standard
+of iGaming platform
+Alignment
+03
+A
+Priority use
+The new standard
+of iGaming platform
+B The new
+standard of iGaming
+platform
+Accent with color
+The new standard
+of iGaming platform
+The new standard
+of iGaming platform
+Alignment
+===== PAGE 27 =====
+Typography. Basic terms
+Weight
+
+Font weight (e.g., bold, semi-bold, thin)
+is used to create emphasis and highlight
+important elements.
+By following these simple 
+rules, your texts will always 
+look good and professional.
+Weight
+
+Font weight (e.g., bold, semi-bold, thin)
+is used to create emphasis and highlight
+important elements.
+Type
+
+Sans-serif fonts create a modern, minimalist,
+and clean look.
+Harmony
+
+Choose font pairings (styles) that combine
+harmoniously, create good visual contrast,
+and form a visual integrity.
+Hierarchy
+
+Use different font sizes, weights, and styles to 
+help create a visual hierarchy. This facilitates 
+the perception of information and highlights 
+important elements.
+Leadin
+
+Using the correct leading ensures
+comfortable reading and improves the visual
+appearance of the text and the blocks of text
+relative to each other.
+03
+Size
+
+The choice of font size depends on the
+purpose of the text and its importance.
+Readability
+
+For each layout (size), choose the font 
+that ensures comfortable reading and 
+improves the perception of information.
+Alignment
+
+Text alignment can be left, right, 
+centered, or justified. Proper alignment 
+improves readability and text structure.
+Color
+
+The choice of font color should ensure
+contrast with the background and 
+improve readability.
+===== PAGE 28 =====
+Graphic elements
+We use only basic solutions for material development. 
+Changes in approaches and implementations are possible in 
+the future.
+04
+===== PAGE 29 =====
+Main pattern
+04
+hese four patterns demonstrate the evolution of a 
+modular grid through the principles of scaling, 
+fragmentation, and combinatorics. At the core of 
+each design is a purple circle derived from a logo. 
+This is a classic, uniform 5×5 matrix. All circles have the same diameter and 
+are precisely aligned vertically and horizontally. The internal pattern of the 
+elements changes systematically.
+
+The entire series is a graphic exploration of how a single base element by 
+varying its scale and density can create patterns with completely different 
+dynamics and visual weight: from calm, regular geometry to complex, 
+almost digital chaos.
+Find your unique solutions 
+by combining branded 
+elements.
+Basic element
+A
+B
+C
+===== PAGE 30 =====
+Pattern
+This pattern is designed for use as a decorative 
+element in packaging and as a background on a 
+brand wall.
+85-90% base color
+04
+944DFF
+===== PAGE 31 =====
+Pattern. Construction
+!lockwise rotations
+00
+900
+1800
+2700
+X
+0,5X
+X
+0,5X
+0,5X
+04
+A cyclic sequence of three fixed clockwise rotations 
+is used to create a complex and non-monotonic 
+pattern. The original element with three internal 
+lines forming a "K" shape has the following three 
+orientations: 00, 900, 1800, 2700.
+
+The vertical (column) and horizontal (row) center-
+to-center spacings are the same and constant 
+within the grid, as shown in the construction.
+
+Row Offset: The pattern is not a simple, vertically 
+aligned grid. The even rows (2nd and 4th) are 
+offset horizontally relative to the odd rows (1st and 
+3rd). The offset is half the distance between the 
+columns, which gives the pattern a characteristic 
+"diamond" or "checkerboard" look and adds 
+dynamics.
+===== PAGE 32 =====
+Graphic elements
+Raster element with transparency
+Vector element with transparency
+Opacity: 60%
+Opacity: 80%
+Opacity: 20%
+Opacity: 30%
+04
+781DFF
+FF43D0
+781DFF
+D043FF
+781DFF
+===== PAGE 33 =====
+Graphic elements
+All versions of the graphic element
+Basic element A
+Basic element B
+Basic element C
+At the start of the project, we use only these basic solutions for material development. 
+In the future, changes to the angles of the main figures are possible upon request.
+All versions of the graphic element
+04
+Basic element D
+===== PAGE 34 =====
+Graphic elements
+Combination of two rings
+This technique is used as an additional one, in 
+cases where the use of a basic graphic element of 
+several rings overloads the composition.
+
+Feel free to create and combine branded graphic 
+elements to create mood and different 
+compositions in layouts.
+A
+Ring framing: one corner
+Ring framing: two corners
+C
+All versions of the graphic element
+04
+B
+Find your unique solutions 
+by combining branded 
+elements.
+===== PAGE 35 =====
+Graphic elements. ! ompositions
+Raster element with transparency
+04
+===== PAGE 36 =====
+Additional graphic elements
+All versions of the graphic element
+04
+===== PAGE 37 =====
+Additional graphic elements. Styles
+All versions of the graphic element
+04
+===== PAGE 38 =====
+Souvenir products &
+OOH/DOOH
+The branding examples below are not intended as a guide for further development. They are 
+more of a starting point. Final designs will be developed later. Color versions for printing for 
+different application technologies are selected and agreed separately.
+05
+===== PAGE 39 =====
+Souvenir products
+Example
+Example
+Example
+05
+===== PAGE 40 =====
+Souvenir products
+Example
+05
+Example
+===== PAGE 41 =====
+Souvenir products
+Example
+Example
+Example
+05
+===== PAGE 42 =====
+Souvenir products
+Example
+Example
+05
+===== PAGE 43 =====
+Souvenir products
+Example
+Example
+Example
+05
+===== PAGE 44 =====
+Souvenir products
+Example
+05
+Example
+===== PAGE 45 =====
+OOH/DOOH
+Example
+05
+===== PAGE 46 =====
+OOH/DOOH
+Example
+05
+===== PAGE 47 =====
+OOH/DOOH
+Example
+Example
+05
+===== PAGE 48 =====
+Smm & web
+The provided visuals demonstrate an effective application of 
+brand identity for social media, rooted in the principles of 
+consistency and brand recognition.
+06
+===== PAGE 49 =====
+Smm
+06
+14
+14
+HIPTHER(
+Baltics:(
+Riga
+shortlisted(in 14(
+categories
+shortlisted(in 14(
+categories
+May 11, 2026
+Riga, Latvia 
+Visual Unity: The use of abstract 3D graphics (rings) creates a dynamic and modern 
+brand image. This graphic element is consistent across all images.
+Color Palette: The active use of purple tones, combined with contrasting black or 
+light backgrounds, helps create a cohesive visual narrative.
+===== PAGE 50 =====
+Smm
+06
+10+
+years in iGaming
+50+
+active Brands
+99.9%
+platform Uptime
+HIPTHER(
+Baltics:(
+Riga
+Shortlisted in(
+14 categories
+technology crafted 
+from real(
+B2C expertise
+May 11, 2026
+Riga, Latvia 
+Typography and Logo: Logo and brand typography are positioned 
+clearly, ensuring brand recognizability even when scrolling quickly 
+through a news feed.
+Design Adaptability: The graphic templates are easily adapted for different 
+messages (e.g., announcing an achievement 
+ shortlisted in 14 categories, or 
+event information in Riga) while maintaining a unified style.
+===== PAGE 51 =====
+Smm
+Creating a LinkedIn profile is like creating your professional business card. To 
+attract recruiters, your profile should be complete, structured, and optimized. 
+The following are used when creating it: a logo, corporate fonts, and colors.
+The new standard of
+iGaming platform
+06
+===== PAGE 52 =====
+Smm
+Personalization: Using professional employee photos makes the 
+communication "human-centric." This is crucial for the B2B 
+segment, as it increases trust and establishes a personal connection 
+with the audience.
+
+Balance of Styles: The brand skillfully combines professional 
+business photography with its signature abstract 3D graphics, 
+creating an appealing contrast between the real world and 
+technological aesthetics.
+
+Infographic Elements: The use of minimalist icons and geometric 
+shapes adds depth and a modern "tech-style" to the layouts, 
+supporting the overall visual concept.
+
+Typographic Hierarchy: The event name is clearly highlighted in 
+purple, and the clear structure of information (who, where, when) 
+allows the user to instantly understand the purpose of the 
+announcement.
+06
+conversion(
+conf
+Next stop
+Letˇs s meet!
+Warsaw April 1-2, 2026
+Julija Kirillova
+Business Development(
+Manager
