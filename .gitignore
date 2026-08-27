@@ -14,3 +14,9 @@ htmlcov/
 .env.*
 !.env.example
 
+# Local reference docs (not needed at runtime)
+*.pdf
+*.xlsx
+Design/
+.stitch/brand-refs/
+
