@@ -78,6 +78,24 @@ const COPY = {
   recalibrate: ["Growing pool", "Recalibrate a guarantee", "Same philosophy, new prize pool."],
 };
 
+const KPI_HELP = {
+  quality: "Weighted average of the quality bars below (0–100). Higher = more cashier-ready and on-style.",
+  pool: "Total guaranteed prize pool for this structure.",
+  paid: "How many finishing positions receive a payout.",
+  first: "Amount paid to 1st place in this ladder.",
+  min: "Minimum prize floor from Advanced — every paid place must be at least this, not necessarily the lowest tier shown.",
+};
+
+const METRIC_HELP = {
+  nice_numbers: "Share of the paid pool on cashier-friendly amounts (€500, €250, …) from the nice-number profile.",
+  compactness: "Fewer widget tiers vs paid places. Tighter grouping = cleaner lobby display; ~12 tiers is ideal for large fields.",
+  marketing_p1: "First prize quality: nice-number check plus how close P1 is to the style target (~15% balanced, ~28% jackpot, ~8% flat).",
+  midfield: "Pool share outside the top ~10% of places. Higher = more value in places 2–50. Scored against your style target.",
+  curve_fit: "How closely rank-by-rank prizes follow the ideal power-law curve for this style.",
+  smoothness: "Penalises harsh cliffs between adjacent tiers (e.g. one tier paying 3×+ the next). 100 = smooth steps.",
+  bucket_progression: "Widget tiers should widen going down (1 → 2–3 → 4–10). 100 = no inverted grouping.",
+};
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -307,13 +325,21 @@ async function api(path, body) {
   return data;
 }
 
+function tipLabel(text, help) {
+  if (!help) return text;
+  return `<span class="tip-label" title="${help.replaceAll('"', "&quot;")}">${text}</span>`;
+}
+
 function metricBars(metrics = {}) {
-  return Object.entries(metrics).map(([name, value]) => `
+  return Object.entries(metrics).map(([name, value]) => {
+    const label = name.replaceAll("_", " ");
+    return `
     <div class="metric">
-      <span>${name.replaceAll("_", " ")}</span>
+      ${tipLabel(label, METRIC_HELP[name])}
       <div class="bar"><i style="width:${Math.max(0, Math.min(100, value))}%"></i></div>
       <b>${Number(value).toFixed(0)}</b>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 function tableHtml(structure) {
@@ -333,12 +359,12 @@ function tableHtml(structure) {
 function summaryHtml(structure, quality, extra = "") {
   return `
     <div class="summary">
-      <div class="score"><span class="overline">Quality</span><b>${Number(quality.score).toFixed(0)}</b></div>
+      <div class="score">${tipLabel('<span class="overline">Quality</span>', KPI_HELP.quality)}<b>${Number(quality.score).toFixed(0)}</b></div>
       <div class="kpis">
-        <div class="kpi"><span>Pool</span><strong>${money(structure.prize_pool_cents, structure.currency)}</strong></div>
-        <div class="kpi"><span>Paid places</span><strong>${structure.winner_count}</strong></div>
-        <div class="kpi"><span>First prize</span><strong>${money(structure.top_prize_cents, structure.currency)}</strong></div>
-        <div class="kpi"><span>Min cash</span><strong>${money(structure.min_prize_cents, structure.currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Pool</span>", KPI_HELP.pool)}<strong>${money(structure.prize_pool_cents, structure.currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Paid places</span>", KPI_HELP.paid)}<strong>${structure.winner_count}</strong></div>
+        <div class="kpi">${tipLabel("<span>First prize</span>", KPI_HELP.first)}<strong>${money(structure.top_prize_cents, structure.currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Min cash</span>", KPI_HELP.min)}<strong>${money(structure.min_prize_cents, structure.currency)}</strong></div>
       </div>
     </div>
     <div class="metrics">${metricBars(quality.metrics)}</div>

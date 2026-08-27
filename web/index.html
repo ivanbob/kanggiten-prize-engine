@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=recipes" />
+    <link rel="stylesheet" href="/assets/styles.css?v=generate" />
   </head>
   <body>
     <div class="app">
@@ -26,15 +26,6 @@
         <nav class="nav">
           <button class="nav-item is-active" data-view="generate" type="button">
             <span class="nav-dot"></span>Generate
-          </button>
-          <button class="nav-item" data-view="analyze" type="button">
-            <span class="nav-dot"></span>Analyze
-          </button>
-          <button class="nav-item" data-view="optimize" type="button">
-            <span class="nav-dot"></span>Optimize
-          </button>
-          <button class="nav-item" data-view="recalibrate" type="button">
-            <span class="nav-dot"></span>Recalibrate
           </button>
         </nav>
         <p class="rail-note">The new standard of iGaming platform.</p>
@@ -110,22 +101,22 @@
               <summary>Advanced</summary>
               <div class="advanced-body">
                 <div class="grid-2">
-                  <label>Min cash
+                  <label><span class="tip-label" title="Minimum prize floor. Every paid place must be at least this amount — not necessarily the lowest tier in the table.">Min cash</span>
                     <select name="min_mode">
                       <option value="fixed" selected>Fixed amount</option>
                       <option value="automatic">Automatic</option>
                       <option value="entry_multiple" data-when="ticket" hidden>Buy-in multiple</option>
                     </select>
                   </label>
-                  <label id="min-value-wrap"><span data-label="min">Min amount</span>
+                  <label id="min-value-wrap"><span class="tip-label" data-label="min" title="The floor value: fixed amount (€), buy-in multiple (× ticket), or ignored when Automatic.">Min amount</span>
                     <input name="min_value" type="number" min="0" step="0.01" value="1" />
                   </label>
                 </div>
                 <div class="grid-2">
-                  <label>Max widget tiers
+                  <label><span class="tip-label" title="Max rows in the lobby prize widget. The engine groups places with the same payout into tiers — fewer tiers = cleaner display. Affects the Compactness score.">Max widget tiers</span>
                     <input name="max_buckets" type="number" min="3" max="20" value="12" />
                   </label>
-                  <label>Nice numbers
+                  <label><span class="tip-label" title="Which cashier denominations prizes snap to. Casino cashier: lobby-friendly steps (€5, €10, €25, €50, €100, €250, €500…). Standard: academic whole-unit set (Musco et al.) — stricter at large amounts.">Nice numbers</span>
                     <select name="nice_profile">
                       <option value="casino" selected>Casino cashier</option>
                       <option value="standard">Standard</option>
@@ -211,6 +202,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=recipes"></script>
+    <script src="/assets/app.js?v=generate"></script>
   </body>
 </html>
