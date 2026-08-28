@@ -52,6 +52,11 @@ class NiceNumberProfile(str, Enum):
     CUSTOM = "custom"
 
 
+class PrizePoolMode(str, Enum):
+    FIXED = "fixed"
+    CUMULATIVE = "cumulative"
+
+
 class WinnersSpec(BaseModel):
     mode: WinnerMode = WinnerMode.PERCENTAGE
     value: float | None = None
@@ -79,6 +84,9 @@ class TournamentInput(BaseModel):
 
     currency: str = DEFAULT_CURRENCY
     prize_pool: float
+    pool_mode: PrizePoolMode = PrizePoolMode.FIXED
+    contribution_rate: float = Field(default=0, ge=0, le=100)
+    expected_total_wager: float = Field(default=0, ge=0)
     entrants: int = Field(ge=1)
     entry_fee: float = Field(ge=0)
     winners: WinnersSpec = Field(default_factory=WinnersSpec)

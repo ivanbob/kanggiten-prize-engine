@@ -50,22 +50,22 @@ const RECIPES = {
   slot: {
     flash: {
       title: "Flash race",
-      why: "Short promo / lobby race",
+      why: "Lobby promo · €5k · 12 places",
       values: { currency: "EUR", prize_pool: 5000, winners_mode: "count", winners_value: 12, style: "balanced", min_mode: "fixed", min_value: 1, max_buckets: 10 },
     },
     daily: {
       title: "Daily slot",
-      why: "Standard daily leaderboard",
+      why: "Standard daily board · €50k · 50 places",
       values: { currency: "EUR", prize_pool: 50000, winners_mode: "count", winners_value: 50, style: "balanced", min_mode: "fixed", min_value: 1, max_buckets: 12 },
     },
     weekly: {
       title: "Weekly board",
-      why: "Long board, more midfield",
+      why: "Long board · €250k · wide field",
       values: { currency: "EUR", prize_pool: 250000, winners_mode: "count", winners_value: 100, style: "flat", min_mode: "fixed", min_value: 1, max_buckets: 12 },
     },
     jackpot: {
       title: "Jackpot weekend",
-      why: "Marketing first prize",
+      why: "Hero 1st prize · €100k marketing",
       values: { currency: "EUR", prize_pool: 100000, winners_mode: "count", winners_value: 30, style: "top_heavy", min_mode: "fixed", min_value: 2, max_buckets: 12 },
     },
     micro: {
@@ -99,7 +99,7 @@ const CONTEXT_COPY = {
 };
 
 const COPY = {
-  generate: ["New structure", "Generate a prize table", "Pick a recipe, then publish."],
+  generate: ["New structure", "Generate a prize table", "Pick a template — preview updates as you edit."],
   analyze: ["Audit", "Analyze a published ladder", "Score niceness, compactness, and mid-field value."],
   optimize: ["Rewrite", "Optimize an existing table", "Keep the contract. Clean the widget."],
   recalibrate: ["Growing pool", "Recalibrate a guarantee", "Same philosophy, new prize pool."],
@@ -107,11 +107,16 @@ const COPY = {
 
 const KPI_HELP = {
   quality: "Weighted average of the quality bars below (0–100). Higher = more cashier-ready and on-style.",
-  pool: "Total guaranteed prize pool for this structure.",
+  pool: "Total effective prize pool used for this ladder.",
+  guarantee: "Fixed guarantee before bet contribution.",
+  contribution: "Added share from % of expected tournament bets.",
   paid: "How many finishing positions receive a payout.",
   first: "Amount paid to 1st place in this ladder.",
   min: "Minimum prize floor from Advanced — every paid place must be at least this, not necessarily the lowest tier shown.",
 };
+
+let previewTimer = null;
+let previewSeq = 0;
 
 const METRIC_HELP = {
   nice_numbers: "Share of the paid pool on cashier-friendly amounts (€500, €250, …) from the nice-number profile.",
@@ -175,9 +180,14 @@ function usesTicket() {
   return eventContext === "ticketed";
 }
 
+function usesCumulative() {
+  return $("#cumulative-pool")?.checked === true;
+}
+
 function applyContext() {
   const field = usesField();
   const ticket = usesTicket();
+  const cumulative = usesCumulative();
   const minMode = generateForm.elements.min_mode;
   if (!ticket && minMode.value === "entry_multiple") minMode.value = "fixed";
   $$("[data-when]").forEach((el) => {
@@ -187,6 +197,10 @@ function applyContext() {
       || (when === "field" && field);
     el.hidden = !show;
   });
+  const cumulativeFields = $("#cumulative-fields");
+  if (cumulativeFields) cumulativeFields.hidden = !cumulative;
+  const poolLabel = $("#pool-label");
+  if (poolLabel) poolLabel.textContent = cumulative ? "Guarantee" : "Prize pool";
   $("#context-hint").textContent = CONTEXT_COPY[eventContext];
   const winnersMode = field ? generateForm.elements.winners_mode.value : "count";
   $("[data-label='winners']").textContent = winnersMode === "percentage" ? "Paid % of field" : "Paid places";
@@ -200,7 +214,13 @@ function fillForm(form, data) {
     const field = form.elements[key];
     if (field) field.value = value;
   }
+  if ("pool_mode" in data || "cumulative_enabled" in data) {
+    const cumulative = data.pool_mode === "cumulative" || data.cumulative_enabled === true;
+    const box = form.elements.cumulative_enabled;
+    if (box) box.checked = cumulative;
+  }
   if (data.style) syncStyleCards(data.style);
+  applyContext();
 }
 
 function styleCurveSvg(option, selected) {
@@ -235,7 +255,7 @@ function syncStyleCards(styleId) {
 function selectStyle(styleId) {
   if (!STYLE_OPTIONS[styleId]) return;
   syncStyleCards(styleId);
-  showSuggestions(buildFormSuggestions(generatePayload(generateForm)));
+  schedulePreview();
 }
 
 function rankAmounts(structure) {
@@ -353,9 +373,13 @@ function generatePayload(form) {
     : Math.max(1, Math.round(Number(form.elements.entrants.value) * winnersValue / 100));
   let minMode = form.elements.min_mode.value;
   if (!ticket && minMode === "entry_multiple") minMode = "fixed";
+  const cumulative = usesCumulative();
   return {
     currency: form.elements.currency.value,
     prize_pool: Number(form.elements.prize_pool.value),
+    pool_mode: cumulative ? "cumulative" : "fixed",
+    contribution_rate: cumulative ? Number(form.elements.contribution_rate.value) : 0,
+    expected_total_wager: cumulative ? Number(form.elements.expected_total_wager.value) : 0,
     entrants: field ? Number(form.elements.entrants.value) : paidCount,
     entry_fee: ticket ? Number(form.elements.entry_fee.value) : 0,
     style: form.elements.style.value,
@@ -391,8 +415,8 @@ function loadRecipe(id) {
   selectedRecipeId = id;
   fillForm(generateForm, recipe.values);
   renderRecipes();
-  applyContext();
   clearSuggestions();
+  schedulePreview();
 }
 
 function clearSuggestions() {
@@ -424,11 +448,12 @@ function applySuggestion(action, value) {
     selectStyle(value);
     return;
   }
-  if (action === "paid") {
+    if (action === "paid") {
     generateForm.elements.winners_mode.value = "count";
     generateForm.elements.winners_value.value = value;
     applyContext();
     clearSuggestions();
+    schedulePreview();
     return;
   }
   if (action === "recipe") {
@@ -436,7 +461,7 @@ function applySuggestion(action, value) {
     return;
   }
   if (action === "regenerate") {
-    generateForm.requestSubmit();
+    schedulePreview();
   }
 }
 
@@ -517,21 +542,36 @@ function tableHtml(structure) {
     const share = ((b.amount_cents * ((b.end - b.start) + 1)) / pool) * 100;
     return `<tr class="${podium}"><td>${places}</td><td class="money">${money(b.amount_cents, structure.currency)}</td><td class="money">${share.toFixed(1)}%</td></tr>`;
   }).join("");
-  return `<div class="table-wrap"><table>
+  return `<div class="table-wrap"><table id="payout-table">
     <thead><tr><th>Places</th><th class="money">Prize</th><th class="money">Pool</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
 
-function summaryHtml(structure, quality, extra = "") {
+function poolKpiHtml(structure, normalized) {
+  const currency = structure.currency;
+  if (normalized?.pool_mode === "cumulative" && normalized.contribution_cents > 0) {
+    return `
+        <div class="kpi">${tipLabel("<span>Guarantee</span>", KPI_HELP.guarantee)}<strong>${money(normalized.guarantee_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>+ Bets</span>", KPI_HELP.contribution)}<strong>${money(normalized.contribution_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Effective pool</span>", KPI_HELP.pool)}<strong>${money(structure.prize_pool_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Paid places</span>", KPI_HELP.paid)}<strong>${structure.winner_count}</strong></div>
+        <div class="kpi">${tipLabel("<span>First prize</span>", KPI_HELP.first)}<strong>${money(structure.top_prize_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Min cash</span>", KPI_HELP.min)}<strong>${money(structure.min_prize_cents, currency)}</strong></div>`;
+  }
+  return `
+        <div class="kpi">${tipLabel("<span>Pool</span>", KPI_HELP.pool)}<strong>${money(structure.prize_pool_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Paid places</span>", KPI_HELP.paid)}<strong>${structure.winner_count}</strong></div>
+        <div class="kpi">${tipLabel("<span>First prize</span>", KPI_HELP.first)}<strong>${money(structure.top_prize_cents, currency)}</strong></div>
+        <div class="kpi">${tipLabel("<span>Min cash</span>", KPI_HELP.min)}<strong>${money(structure.min_prize_cents, currency)}</strong></div>`;
+}
+
+function summaryHtml(structure, quality, extra = "", normalized = null) {
   return `
     <div class="summary">
       <div class="score">${tipLabel('<span class="overline">Quality</span>', KPI_HELP.quality)}<b>${Number(quality.score).toFixed(0)}</b></div>
       <div class="kpis">
-        <div class="kpi">${tipLabel("<span>Pool</span>", KPI_HELP.pool)}<strong>${money(structure.prize_pool_cents, structure.currency)}</strong></div>
-        <div class="kpi">${tipLabel("<span>Paid places</span>", KPI_HELP.paid)}<strong>${structure.winner_count}</strong></div>
-        <div class="kpi">${tipLabel("<span>First prize</span>", KPI_HELP.first)}<strong>${money(structure.top_prize_cents, structure.currency)}</strong></div>
-        <div class="kpi">${tipLabel("<span>Min cash</span>", KPI_HELP.min)}<strong>${money(structure.min_prize_cents, structure.currency)}</strong></div>
+        ${poolKpiHtml(structure, normalized)}
       </div>
     </div>
     <div class="metrics">${metricBars(quality.metrics)}</div>
@@ -540,23 +580,96 @@ function summaryHtml(structure, quality, extra = "") {
     ${tableHtml(structure)}`;
 }
 
-function renderGenerate(target, result, payload) {
+function tableExportText(structure, delimiter = "\t") {
+  const pool = structure.prize_pool_cents || 1;
+  const lines = ["Place\tPrize\tPool %"];
+  for (const b of structure.buckets || []) {
+    const places = b.start === b.end ? `${b.start}` : `${b.start}-${b.end}`;
+    const amt = (b.amount_cents / 100).toFixed(2);
+    const share = ((b.amount_cents * b.size / pool) * 100).toFixed(1);
+    lines.push([places, amt, share].join(delimiter));
+  }
+  return lines.join("\n");
+}
+
+async function copyTableExport(structure, delimiter) {
+  const text = tableExportText(structure, delimiter);
+  await navigator.clipboard.writeText(text);
+  toast(delimiter === "," ? "CSV copied — paste into Sheets" : "Table copied for Google Sheets", true);
+}
+
+function showResultsPanel(show) {
+  const stage = $("#view-generate");
+  const panel = $("#generate-results");
+  stage.classList.toggle("has-results", show);
+  panel.hidden = !show;
+  $("#generate-submit").textContent = show ? "Refresh table" : "Generate table";
+}
+
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => runGenerate({ silent: true }), 500);
+}
+
+async function runGenerate({ silent = false } = {}) {
+  const payload = generatePayload(generateForm);
+  const seq = ++previewSeq;
+  const btn = $("#generate-submit");
+  const panel = $("#generate-results");
+  if (!silent) btn.disabled = true;
+  else {
+    btn.classList.add("is-loading");
+    if (!panel.hidden) panel.classList.add("is-loading");
+  }
+  try {
+    const result = await api("/v1/payouts/generate", payload);
+    if (seq !== previewSeq) return;
+    showResultsPanel(true);
+    renderGenerate(panel, result, payload, result.normalized);
+    if (!silent) toast(`Table ready in ${result.runtime_ms.toFixed(0)} ms`, true);
+  } catch (err) {
+    if (seq !== previewSeq) return;
+    showSuggestions([
+      ...buildFormSuggestions(payload),
+      { action: "recipe", value: "daily", label: "Load Daily recipe" },
+    ].slice(0, 3));
+    if (!silent) toast(err.message);
+  } finally {
+    if (!silent) btn.disabled = false;
+    else {
+      btn.classList.remove("is-loading");
+      panel.classList.remove("is-loading");
+    }
+  }
+}
+
+function renderGenerate(target, result, payload, normalized = null) {
   const candidates = result.candidates || [];
   const paint = (index) => {
     const candidate = candidates[index];
+    const structure = candidate.structure;
     const chips = candidates.map((c, i) =>
       `<button type="button" class="chip ${i === index ? "is-selected" : ""}" data-idx="${i}">Alt ${i + 1} · ${Number(c.quality.score).toFixed(0)}</button>`
     ).join("");
     const flags = [
       ...(candidate.validation.errors || []).map((e) => e.message),
-      ...(candidate.structure.warnings || []),
+      ...(structure.warnings || []),
     ];
     target.innerHTML = `
+      <div class="result-actions">
+        <button type="button" class="btn ghost" data-copy="tsv">Copy for Sheets</button>
+        <button type="button" class="btn ghost" data-copy="csv">Copy CSV</button>
+      </div>
+      <p class="preview-note">Live preview — ladder updates as you change the template.</p>
       <div class="candidates">${chips}</div>
-      ${summaryHtml(candidate.structure, candidate.quality, flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "")}
+      ${summaryHtml(structure, candidate.quality, flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "", normalized)}
     `;
-    target.dataset.empty = "false";
     $$(".chip", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
+    $$("[data-copy]", target).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        copyTableExport(structure, btn.dataset.copy === "csv" ? "," : "\t").catch(() => toast("Could not copy — check browser permissions"));
+      });
+    });
     showSuggestions(buildResultSuggestions(candidate.quality, payload));
   };
   if (!candidates.length) {
@@ -590,33 +703,32 @@ $$(".segment-btn").forEach((btn) => {
 $("#known-field").addEventListener("change", () => {
   applyContext();
   clearSuggestions();
+  schedulePreview();
 });
-generateForm.elements.winners_mode.addEventListener("change", applyContext);
-generateForm.elements.min_mode.addEventListener("change", applyContext);
-["prize_pool", "winners_value", "entrants"].forEach((name) => {
-  generateForm.elements[name]?.addEventListener("change", () => {
-    showSuggestions(buildFormSuggestions(generatePayload(generateForm)));
-  });
+generateForm.elements.winners_mode.addEventListener("change", () => {
+  applyContext();
+  schedulePreview();
 });
+generateForm.elements.min_mode.addEventListener("change", () => {
+  applyContext();
+  schedulePreview();
+});
+$("#cumulative-pool").addEventListener("change", () => {
+  applyContext();
+  schedulePreview();
+});
+["prize_pool", "winners_value", "entrants", "contribution_rate", "expected_total_wager", "currency"].forEach((name) => {
+  generateForm.elements[name]?.addEventListener("input", schedulePreview);
+  generateForm.elements[name]?.addEventListener("change", schedulePreview);
+});
+["max_buckets", "min_value"].forEach((name) => {
+  generateForm.elements[name]?.addEventListener("change", schedulePreview);
+});
+generateForm.elements.nice_profile?.addEventListener("change", schedulePreview);
 
-generateForm.addEventListener("submit", async (event) => {
+generateForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const btn = $("#generate-submit");
-  const payload = generatePayload(generateForm);
-  btn.disabled = true;
-  try {
-    const result = await api("/v1/payouts/generate", payload);
-    renderGenerate($("#generate-results"), result, payload);
-    toast(`Table ready in ${result.runtime_ms.toFixed(0)} ms`, true);
-  } catch (err) {
-    showSuggestions([
-      ...buildFormSuggestions(payload),
-      { action: "recipe", value: "daily", label: "Load Daily recipe" },
-    ].slice(0, 3));
-    toast(err.message);
-  } finally {
-    btn.disabled = false;
-  }
+  runGenerate({ silent: false });
 });
 
 function bindJsonForm(formId, resultId, handler) {

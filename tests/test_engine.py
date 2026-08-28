@@ -159,3 +159,27 @@ def test_impossible_constraints_raise():
                 "top_prize": {"mode": "fixed", "value": 50},
             }
         )
+
+
+def test_cumulative_pool_adds_bet_contribution():
+    result = generate(
+        {
+            "currency": "EUR",
+            "prize_pool": 10000,
+            "pool_mode": "cumulative",
+            "contribution_rate": 5,
+            "expected_total_wager": 200000,
+            "entrants": 100,
+            "entry_fee": 0,
+            "winners": {"mode": "count", "value": 10},
+            "style": "balanced",
+        }
+    )
+    norm = result.normalized
+    assert norm["guarantee_cents"] == 1_000_000
+    assert norm["contribution_cents"] == 1_000_000
+    assert norm["prize_pool_cents"] == 2_000_000
+    assert norm["pool_mode"] == "cumulative"
+    best = result.candidates[0]
+    assert best.validation.valid
+    assert best.structure.total_paid_cents() == 2_000_000

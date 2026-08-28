@@ -14,6 +14,7 @@ from payout_engine.core.defaults import (
 from payout_engine.core.models import (
     MinPrizeMode,
     NiceNumberProfile,
+    PrizePoolMode,
     TopPrizeMode,
     TournamentInput,
     WinnerMode,
@@ -43,12 +44,18 @@ class NormalizedSpec:
     top_prize_mode: str
     min_prize_mode: str
     winner_mode: str
+    pool_mode: str = "fixed"
+    guarantee_cents: int = 0
+    contribution_cents: int = 0
     profile: str = ENGINE_PROFILE_NAME
 
     def to_public_dict(self) -> dict:
         return {
             "currency": self.currency,
             "prize_pool_cents": self.prize_pool_cents,
+            "pool_mode": self.pool_mode,
+            "guarantee_cents": self.guarantee_cents,
+            "contribution_cents": self.contribution_cents,
             "entrants": self.entrants,
             "entry_fee_cents": self.entry_fee_cents,
             "winner_count": self.winner_count,
@@ -64,7 +71,11 @@ class NormalizedSpec:
 
 
 def normalize(inp: TournamentInput) -> NormalizedSpec:
-    pool = major_to_cents(inp.prize_pool)
+    guarantee = major_to_cents(inp.prize_pool)
+    contribution = _contribution_cents(inp)
+    pool = guarantee + contribution
+    if pool <= 0:
+        raise NormalizationError("effective prize pool must be positive")
     entry = major_to_cents(inp.entry_fee)
     style = inp.style.value
     winners = _winner_count(inp, style)
@@ -76,6 +87,7 @@ def normalize(inp: TournamentInput) -> NormalizedSpec:
     )
     top = _top_prize_cents(inp, pool, min_prize, winners, nice)
     _assert_feasible(pool, winners, top, min_prize)
+    pool_mode = inp.pool_mode.value
     return NormalizedSpec(
         currency=inp.currency.upper(),
         prize_pool_cents=pool,
@@ -92,7 +104,19 @@ def normalize(inp: TournamentInput) -> NormalizedSpec:
         top_prize_mode=inp.top_prize.mode.value,
         min_prize_mode=inp.minimum_prize.mode.value,
         winner_mode=inp.winners.mode.value,
+        pool_mode=pool_mode,
+        guarantee_cents=guarantee,
+        contribution_cents=contribution,
     )
+
+
+def _contribution_cents(inp: TournamentInput) -> int:
+    if inp.pool_mode is not PrizePoolMode.CUMULATIVE:
+        return 0
+    if inp.contribution_rate <= 0 or inp.expected_total_wager <= 0:
+        return 0
+    major = float(inp.expected_total_wager) * float(inp.contribution_rate) / 100.0
+    return major_to_cents(major)
 
 
 def _winner_count(inp: TournamentInput, style: str) -> int:
