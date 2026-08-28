@@ -117,6 +117,8 @@ const KPI_HELP = {
 
 let previewTimer = null;
 let previewSeq = 0;
+const SAVED_TEMPLATES_KEY = "kanggiten-prize-engine-templates-v1";
+const MAX_SAVED_TEMPLATES = 24;
 
 const METRIC_HELP = {
   nice_numbers: "Share of the paid pool on cashier-friendly amounts (€500, €250, …) from the nice-number profile.",
@@ -219,8 +221,86 @@ function fillForm(form, data) {
     const box = form.elements.cumulative_enabled;
     if (box) box.checked = cumulative;
   }
+  if ("known_field" in data) {
+    const known = $("#known-field");
+    if (known) known.checked = Boolean(data.known_field);
+  }
   if (data.style) syncStyleCards(data.style);
   applyContext();
+}
+
+function formValuesFromForm(form) {
+  return {
+    currency: form.elements.currency.value,
+    prize_pool: Number(form.elements.prize_pool.value),
+    pool_mode: usesCumulative() ? "cumulative" : "fixed",
+    cumulative_enabled: usesCumulative(),
+    contribution_rate: Number(form.elements.contribution_rate?.value || 0),
+    expected_total_wager: Number(form.elements.expected_total_wager?.value || 0),
+    entrants: Number(form.elements.entrants?.value || 80),
+    entry_fee: Number(form.elements.entry_fee?.value || 0),
+    winners_mode: form.elements.winners_mode.value,
+    winners_value: Number(form.elements.winners_value.value),
+    style: form.elements.style.value,
+    min_mode: form.elements.min_mode.value,
+    min_value: Number(form.elements.min_value.value),
+    max_buckets: Number(form.elements.max_buckets.value),
+    nice_profile: form.elements.nice_profile.value,
+    known_field: $("#known-field")?.checked || false,
+  };
+}
+
+function loadSavedTemplates() {
+  try {
+    const raw = localStorage.getItem(SAVED_TEMPLATES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedTemplates(templates) {
+  localStorage.setItem(SAVED_TEMPLATES_KEY, JSON.stringify(templates.slice(0, MAX_SAVED_TEMPLATES)));
+}
+
+function savedTemplateMeta(values) {
+  const recipe = { values: { ...values, currency: values.currency || "EUR" } };
+  return recipeMeta(recipe);
+}
+
+function saveCurrentTemplate() {
+  const nameInput = $("#template-name");
+  let name = (nameInput?.value || "").trim();
+  if (!name) {
+    name = window.prompt("Template name?")?.trim() || "";
+  }
+  if (!name) return;
+  const templates = loadSavedTemplates();
+  const id = globalThis.crypto?.randomUUID?.() || `t-${Date.now()}`;
+  templates.unshift({
+    id,
+    name,
+    context: eventContext,
+    values: formValuesFromForm(generateForm),
+    savedAt: new Date().toISOString(),
+  });
+  persistSavedTemplates(templates);
+  if (nameInput) nameInput.value = "";
+  selectedRecipeId = `saved:${id}`;
+  renderRecipes();
+  toast(`Saved team template “${name}”`, true);
+}
+
+function deleteSavedTemplate(id) {
+  const templates = loadSavedTemplates().filter((t) => t.id !== id);
+  persistSavedTemplates(templates);
+  if (selectedRecipeId === `saved:${id}`) {
+    selectedRecipeId = "flash";
+    loadRecipe("flash");
+  } else {
+    renderRecipes();
+  }
+  toast("Template removed", true);
 }
 
 function styleCurveSvg(option, selected) {
@@ -395,18 +475,73 @@ function generatePayload(form) {
 
 function renderRecipes() {
   const list = $("#recipe-list");
-  const recipes = RECIPES[eventContext];
-  if (!recipes[selectedRecipeId]) selectedRecipeId = Object.keys(recipes)[0];
-  list.innerHTML = Object.entries(recipes).map(([id, recipe]) => `
-    <button type="button" class="recipe ${id === selectedRecipeId ? "is-selected" : ""}" data-preset="${id}">
+  const builtIn = RECIPES[eventContext];
+  const saved = loadSavedTemplates().filter((t) => t.context === eventContext);
+  const isSavedSelected = selectedRecipeId?.startsWith("saved:");
+  const savedId = isSavedSelected ? selectedRecipeId.slice(6) : null;
+  if (isSavedSelected && !saved.some((t) => t.id === savedId)) {
+    selectedRecipeId = Object.keys(builtIn)[0];
+  } else if (!isSavedSelected && !builtIn[selectedRecipeId]) {
+    selectedRecipeId = Object.keys(builtIn)[0];
+  }
+  const builtInHtml = Object.entries(builtIn).map(([id, recipe]) => {
+    const selected = selectedRecipeId === id;
+    return `
+    <button type="button" class="recipe ${selected ? "is-selected" : ""}" data-source="builtin" data-preset="${id}">
       <span class="recipe-title">${recipe.title}</span>
       <span class="recipe-meta">${recipeMeta(recipe)}</span>
       <span class="recipe-why">${recipe.why}</span>
-    </button>
-  `).join("");
+    </button>`;
+  }).join("");
+  const savedHtml = saved.map((t) => {
+    const selected = selectedRecipeId === `saved:${t.id}`;
+    return `
+    <button type="button" class="recipe is-saved ${selected ? "is-selected" : ""}" data-source="saved" data-preset="${t.id}">
+      <span class="recipe-title">${t.name}</span>
+      <span class="recipe-meta">${savedTemplateMeta(t.values)}</span>
+      <span class="recipe-why">Saved ${new Date(t.savedAt).toLocaleDateString()}</span>
+      <span class="recipe-delete" role="button" tabindex="0" data-delete="${t.id}" aria-label="Delete template">Remove</span>
+    </button>`;
+  }).join("");
+  list.innerHTML = [
+    saved.length ? `<p class="template-section-label">Your templates</p>${savedHtml}` : "",
+    `<p class="template-section-label">Built-in</p>${builtInHtml}`,
+  ].join("");
   $$("[data-preset]", list).forEach((btn) => {
-    btn.addEventListener("click", () => loadRecipe(btn.dataset.preset));
+    btn.addEventListener("click", (event) => {
+      if (event.target.closest("[data-delete]")) return;
+      loadTemplate(btn.dataset.preset, btn.dataset.source);
+    });
   });
+  $$("[data-delete]", list).forEach((btn) => {
+    const handler = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      deleteSavedTemplate(btn.dataset.delete);
+    };
+    btn.addEventListener("click", handler);
+    btn.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") handler(event);
+    });
+  });
+}
+
+function loadTemplate(id, source) {
+  if (source === "saved") {
+    const template = loadSavedTemplates().find((t) => t.id === id);
+    if (!template) return;
+    if (template.context !== eventContext) {
+      eventContext = template.context;
+      $$(".segment-btn").forEach((b) => b.classList.toggle("is-selected", b.dataset.context === eventContext));
+    }
+    selectedRecipeId = `saved:${id}`;
+    fillForm(generateForm, template.values);
+    renderRecipes();
+    clearSuggestions();
+    schedulePreview();
+    return;
+  }
+  loadRecipe(id);
 }
 
 function loadRecipe(id) {
@@ -580,22 +715,50 @@ function summaryHtml(structure, quality, extra = "", normalized = null) {
     ${tableHtml(structure)}`;
 }
 
-function tableExportText(structure, delimiter = "\t") {
+function tableExportText(structure, normalized = null, delimiter = "\t", { includeMeta = true } = {}) {
   const pool = structure.prize_pool_cents || 1;
-  const lines = ["Place\tPrize\tPool %"];
+  const currency = structure.currency || "EUR";
+  const lines = [];
+  if (includeMeta) {
+    lines.push(["Field", "Value"].join(delimiter));
+    lines.push(["Currency", currency].join(delimiter));
+    if (normalized?.pool_mode === "cumulative" && normalized.contribution_cents > 0) {
+      lines.push(["Guarantee", (normalized.guarantee_cents / 100).toFixed(2)].join(delimiter));
+      lines.push(["Bet contribution", (normalized.contribution_cents / 100).toFixed(2)].join(delimiter));
+    }
+    lines.push(["Effective pool", (pool / 100).toFixed(2)].join(delimiter));
+    lines.push(["Paid places", structure.winner_count].join(delimiter));
+    lines.push(["Style", structure.style || ""].join(delimiter));
+    lines.push(["First prize", (structure.top_prize_cents / 100).toFixed(2)].join(delimiter));
+    lines.push("");
+  }
+  lines.push(["Place", "Prize", "Currency", "Pool %"].join(delimiter));
   for (const b of structure.buckets || []) {
     const places = b.start === b.end ? `${b.start}` : `${b.start}-${b.end}`;
     const amt = (b.amount_cents / 100).toFixed(2);
     const share = ((b.amount_cents * b.size / pool) * 100).toFixed(1);
-    lines.push([places, amt, share].join(delimiter));
+    lines.push([places, amt, currency, share].join(delimiter));
   }
   return lines.join("\n");
 }
 
-async function copyTableExport(structure, delimiter) {
-  const text = tableExportText(structure, delimiter);
+async function copyTableExport(structure, normalized, delimiter) {
+  const text = tableExportText(structure, normalized, delimiter);
   await navigator.clipboard.writeText(text);
-  toast(delimiter === "," ? "CSV copied — paste into Sheets" : "Table copied for Google Sheets", true);
+  toast(delimiter === "," ? "CSV copied — paste into Sheets" : "TSV copied — paste into Google Sheets", true);
+}
+
+function downloadTableExport(structure, normalized, delimiter = ",") {
+  const text = tableExportText(structure, normalized, delimiter);
+  const blob = new Blob([`\uFEFF${text}`], { type: "text/csv;charset=utf-8" });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `kanggiten-ladder-${stamp}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast("CSV downloaded", true);
 }
 
 function showResultsPanel(show) {
@@ -656,9 +819,11 @@ function renderGenerate(target, result, payload, normalized = null) {
       ...(structure.warnings || []),
     ];
     target.innerHTML = `
-      <div class="result-actions">
+      <div class="result-actions export-menu">
         <button type="button" class="btn ghost" data-copy="tsv">Copy for Sheets</button>
         <button type="button" class="btn ghost" data-copy="csv">Copy CSV</button>
+        <button type="button" class="btn ghost" data-download="csv">Download CSV</button>
+        <p class="micro">Includes pool setup + ladder — ready for Google Sheets or CMS paste.</p>
       </div>
       <p class="preview-note">Live preview — ladder updates as you change the template.</p>
       <div class="candidates">${chips}</div>
@@ -667,9 +832,10 @@ function renderGenerate(target, result, payload, normalized = null) {
     $$(".chip", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
     $$("[data-copy]", target).forEach((btn) => {
       btn.addEventListener("click", () => {
-        copyTableExport(structure, btn.dataset.copy === "csv" ? "," : "\t").catch(() => toast("Could not copy — check browser permissions"));
+        copyTableExport(structure, normalized, btn.dataset.copy === "csv" ? "," : "\t").catch(() => toast("Could not copy — check browser permissions"));
       });
     });
+    $("[data-download]", target)?.addEventListener("click", () => downloadTableExport(structure, normalized));
     showSuggestions(buildResultSuggestions(candidate.quality, payload));
   };
   if (!candidates.length) {
@@ -729,6 +895,14 @@ generateForm.elements.nice_profile?.addEventListener("change", schedulePreview);
 generateForm.addEventListener("submit", (event) => {
   event.preventDefault();
   runGenerate({ silent: false });
+});
+
+$("#save-template-btn")?.addEventListener("click", saveCurrentTemplate);
+$("#template-name")?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveCurrentTemplate();
+  }
 });
 
 function bindJsonForm(formId, resultId, handler) {
