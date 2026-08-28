@@ -399,15 +399,12 @@ function renderGenerate(target, result, payload) {
 }
 
 function setView(name) {
-  $$(".nav-item").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.view === name));
   $$(".stage").forEach((stage) => stage.classList.toggle("is-hidden", stage.id !== `view-${name}`));
-  const [kicker, title, hint] = COPY[name];
+  const [kicker, title, hint] = COPY[name] || COPY.generate;
   $("#view-kicker").textContent = kicker;
   $("#view-title").textContent = title;
   $("#view-hint").textContent = hint;
 }
-
-$$(".nav-item").forEach((btn) => btn.addEventListener("click", () => setView(btn.dataset.view)));
 
 const generateForm = $("#generate-form");
 

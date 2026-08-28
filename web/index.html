@@ -11,31 +11,22 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=generate" />
+    <link rel="stylesheet" href="/assets/styles.css?v=header" />
   </head>
   <body>
     <div class="app">
-      <aside class="rail" aria-label="Primary">
-        <div class="brand">
-          <img class="brand-mark" src="/assets/logo-mark.svg" width="40" height="40" alt="" />
-          <div>
-            <p class="wordmark">Kanggiten</p>
-            <h1>Prize Engine</h1>
-          </div>
-        </div>
-        <nav class="nav">
-          <button class="nav-item is-active" data-view="generate" type="button">
-            <span class="nav-dot"></span>Generate
-          </button>
-        </nav>
-        <p class="rail-note">The new standard of iGaming platform.</p>
-      </aside>
-
       <main class="workspace">
-        <header class="topbar">
-          <div>
+        <header class="page-header">
+          <div class="brand">
+            <img class="brand-mark" src="/assets/logo-mark.svg" width="40" height="40" alt="" />
+            <div>
+              <p class="wordmark">Kanggiten</p>
+              <p class="brand-sub">Prize Engine</p>
+            </div>
+          </div>
+          <div class="page-intro">
             <p class="overline" id="view-kicker">New structure</p>
-            <h2 id="view-title">Generate a prize table</h2>
+            <h1 id="view-title">Generate a prize table</h1>
           </div>
           <p class="hint" id="view-hint">Pick a recipe, then publish.</p>
         </header>
@@ -202,6 +193,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=generate"></script>
+    <script src="/assets/app.js?v=header"></script>
   </body>
 </html>
