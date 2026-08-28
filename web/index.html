@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=header" />
+    <link rel="stylesheet" href="/assets/styles.css?v=visual" />
   </head>
   <body>
     <div class="app">
@@ -54,14 +54,13 @@
                   <option value="GBP">GBP</option>
                 </select>
               </label>
-              <label>Style
-                <select name="style">
-                  <option value="balanced" selected>Balanced — keep the field spinning</option>
-                  <option value="top_heavy">Jackpot — marketing first prize</option>
-                  <option value="flat">Flat — daily / weekly leaderboard</option>
-                </select>
-              </label>
             </div>
+
+            <fieldset class="style-fieldset">
+              <legend><span class="tip-label" title="Distribution philosophy — how much of the pool goes to 1st place vs the wider field.">Prize distribution</span></legend>
+              <input type="hidden" name="style" value="balanced" />
+              <div class="style-cards" id="style-cards" role="radiogroup" aria-label="Prize distribution"></div>
+            </fieldset>
 
             <div class="grid-2">
               <label>Prize pool
@@ -193,6 +192,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=header"></script>
+    <script src="/assets/app.js?v=visual"></script>
   </body>
 </html>

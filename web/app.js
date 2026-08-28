@@ -14,9 +14,36 @@ const SAMPLE = {
 };
 
 const STYLE_LABEL = {
-  balanced: "Balanced",
-  top_heavy: "Jackpot",
-  flat: "Flat",
+  balanced: "Engage field",
+  top_heavy: "Hero 1st",
+  flat: "Wide board",
+};
+
+const STYLE_OPTIONS = {
+  balanced: {
+    title: "Engage the field",
+    subtitle: "Podium + midfield · ~15% to 1st",
+    curve: "M2 38 C18 38 28 18 52 14 S88 24 98 34",
+    fill: "M2 38 C18 38 28 18 52 14 S88 24 98 34 L98 46 L2 46 Z",
+    p1: 0.15,
+    alpha: 0.65,
+  },
+  top_heavy: {
+    title: "Hero 1st prize",
+    subtitle: "Weekend promo · ~28% to 1st",
+    curve: "M2 10 C22 10 34 22 58 30 S92 38 98 42",
+    fill: "M2 10 C22 10 34 22 58 30 S92 38 98 42 L98 46 L2 46 Z",
+    p1: 0.28,
+    alpha: 1.05,
+  },
+  flat: {
+    title: "Wide board",
+    subtitle: "Long leaderboard · ~8% to 1st",
+    curve: "M2 28 C28 26 48 24 72 22 S94 20 98 18",
+    fill: "M2 28 C28 26 48 24 72 22 S94 20 98 18 L98 46 L2 46 Z",
+    p1: 0.08,
+    alpha: 0.35,
+  },
 };
 
 const RECIPES = {
@@ -173,6 +200,147 @@ function fillForm(form, data) {
     const field = form.elements[key];
     if (field) field.value = value;
   }
+  if (data.style) syncStyleCards(data.style);
+}
+
+function styleCurveSvg(option, selected) {
+  const stroke = selected ? "#d0ff43" : "#781dff";
+  const fill = selected ? "rgba(208,255,67,0.12)" : "rgba(120,29,255,0.18)";
+  return `<svg class="style-curve" viewBox="0 0 100 48" aria-hidden="true">
+    <path d="${option.fill}" fill="${fill}" />
+    <path d="${option.curve}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" />
+  </svg>`;
+}
+
+function renderStyleCards() {
+  const wrap = $("#style-cards");
+  const current = generateForm.elements.style.value || "balanced";
+  wrap.innerHTML = Object.entries(STYLE_OPTIONS).map(([id, opt]) => `
+    <button type="button" class="style-card ${id === current ? "is-selected" : ""}" data-style="${id}" aria-pressed="${id === current}">
+      ${styleCurveSvg(opt, id === current)}
+      <span class="style-card-title">${opt.title}</span>
+      <span class="style-card-sub">${opt.subtitle}</span>
+    </button>
+  `).join("");
+  $$("[data-style]", wrap).forEach((btn) => {
+    btn.addEventListener("click", () => selectStyle(btn.dataset.style));
+  });
+}
+
+function syncStyleCards(styleId) {
+  generateForm.elements.style.value = styleId;
+  renderStyleCards();
+}
+
+function selectStyle(styleId) {
+  if (!STYLE_OPTIONS[styleId]) return;
+  syncStyleCards(styleId);
+  showSuggestions(buildFormSuggestions(generatePayload(generateForm)));
+}
+
+function rankAmounts(structure) {
+  const amounts = [];
+  for (const bucket of structure.buckets || []) {
+    for (let i = 0; i < bucket.size; i += 1) amounts.push(bucket.amount_cents);
+  }
+  return amounts;
+}
+
+function poolShareRows(structure) {
+  const pool = structure.prize_pool_cents || 1;
+  const amounts = rankAmounts(structure);
+  const sum = (from, to) => amounts.slice(from, to).reduce((a, b) => a + b, 0);
+  const rows = [
+    { label: "1st place", cents: amounts[0] || 0 },
+    { label: "Top 3", cents: sum(0, 3) },
+    { label: "Top 10", cents: sum(0, Math.min(10, amounts.length)) },
+    { label: "Rest", cents: Math.max(0, pool - sum(0, Math.min(10, amounts.length))) },
+  ];
+  return rows.map((row) => ({ ...row, pct: (100 * row.cents) / pool }));
+}
+
+function idealRankAmounts(structure) {
+  const n = structure.winner_count || 1;
+  const pool = structure.prize_pool_cents;
+  const style = structure.style || "balanced";
+  const spec = STYLE_OPTIONS[style] || STYLE_OPTIONS.balanced;
+  const p1 = pool * spec.p1;
+  const e = Math.max(structure.min_prize_cents || 0, pool * 0.005);
+  let alpha = spec.alpha;
+  const ranks = Array.from({ length: n }, (_, i) => i + 1);
+  for (let iter = 0; iter < 48; iter += 1) {
+    const amounts = ranks.map((i) => e + (p1 - e) / Math.pow(i, alpha));
+    const total = amounts.reduce((a, b) => a + b, 0);
+    if (Math.abs(total - pool) / pool < 0.002) return amounts;
+    alpha += total > pool ? 0.04 : -0.04;
+    if (alpha < 0.05) alpha = 0.05;
+  }
+  return ranks.map((i) => e + (p1 - e) / Math.pow(i, spec.alpha));
+}
+
+function distributionVizHtml(structure) {
+  const amounts = rankAmounts(structure);
+  if (!amounts.length) return "";
+  const ideal = idealRankAmounts(structure);
+  const maxVal = Math.max(...amounts, ...ideal, 1);
+  const n = amounts.length;
+  const w = 320;
+  const h = 120;
+  const pad = { l: 4, r: 4, t: 8, b: 18 };
+  const innerW = w - pad.l - pad.r;
+  const innerH = h - pad.t - pad.b;
+  const xAt = (rank) => pad.l + ((rank - 1) / Math.max(n - 1, 1)) * innerW;
+  const yAt = (cents) => pad.t + innerH - (cents / maxVal) * innerH;
+
+  let idealPath = "";
+  ideal.forEach((cents, i) => {
+    const x = xAt(i + 1);
+    const y = yAt(cents);
+    idealPath += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+  });
+
+  let stepPath = "";
+  amounts.forEach((cents, i) => {
+    const x0 = xAt(i + 1) - (i === 0 ? 0 : innerW / (n - 1) / 2);
+    const x1 = xAt(i + 1) + (i === n - 1 ? 0 : innerW / (n - 1) / 2);
+    const y = yAt(cents);
+    stepPath += `M ${x0} ${y} H ${x1} `;
+    if (i < n - 1) stepPath += `V ${yAt(amounts[i + 1])} `;
+  });
+
+  const shares = poolShareRows(structure);
+  const shareRows = shares.map((row) => `
+    <div class="share-row">
+      <span>${row.label}</span>
+      <div class="share-track"><i style="width:${Math.max(2, row.pct).toFixed(1)}%"></i></div>
+      <b>${row.pct.toFixed(1)}%</b>
+    </div>`).join("");
+
+  return `
+    <div class="distribution">
+      <div class="pool-share">
+        <p class="overline">Pool split</p>
+        ${shareRows}
+      </div>
+      <div class="dist-chart">
+        <p class="overline">Prize by place</p>
+        <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Prize amount by finishing place">
+          <defs>
+            <linearGradient id="distFill" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#781dff" stop-opacity="0.35" />
+              <stop offset="100%" stop-color="#d043ff" stop-opacity="0.08" />
+            </linearGradient>
+          </defs>
+          <line x1="${pad.l}" y1="${pad.t + innerH}" x2="${w - pad.r}" y2="${pad.t + innerH}" stroke="rgba(120,29,255,0.25)" />
+          <path d="${idealPath}" fill="none" stroke="rgba(184,179,199,0.45)" stroke-width="1.5" stroke-dasharray="4 4" />
+          <path d="${stepPath}" fill="none" stroke="#d0ff43" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="chart-legend">
+          <span><i class="legend-line legend-actual"></i>Published ladder</span>
+          <span><i class="legend-line legend-target"></i>Style target</span>
+        </div>
+      </div>
+    </div>`;
 }
 
 function generatePayload(form) {
@@ -253,8 +421,7 @@ function showSuggestions(items) {
 
 function applySuggestion(action, value) {
   if (action === "style") {
-    generateForm.elements.style.value = value;
-    clearSuggestions();
+    selectStyle(value);
     return;
   }
   if (action === "paid") {
@@ -280,10 +447,10 @@ function buildFormSuggestions(payload) {
     : Math.max(1, Math.round(payload.entrants * payload.winners.value / 100));
   if (payload.style === "flat" && paid < 40 && payload.prize_pool >= 100000) {
     items.push({ action: "paid", value: "50", label: "Raise paid places to 50" });
-    items.push({ action: "style", value: "balanced", label: "Switch to Balanced" });
+    items.push({ action: "style", value: "balanced", label: "Try Engage the field" });
   }
   if (payload.style === "top_heavy" && paid > 80) {
-    items.push({ action: "style", value: "balanced", label: "Try Balanced for midfield" });
+    items.push({ action: "style", value: "balanced", label: "Try Engage the field" });
   }
   if (eventContext === "slot" && paid < 10 && payload.prize_pool >= 10000) {
     items.push({ action: "recipe", value: "daily", label: "Load Daily slot recipe" });
@@ -295,12 +462,12 @@ function buildResultSuggestions(quality, payload) {
   const items = [];
   const mid = Number(quality?.metrics?.midfield ?? 100);
   if (mid < 40) {
-    items.push({ action: "style", value: "flat", label: "More midfield (Flat)" });
+    items.push({ action: "style", value: "flat", label: "More Wide board" });
     items.push({ action: "paid", value: String(Math.max(30, Math.round((payload.winners.value || 12) * 1.5))), label: "Widen paid places" });
   }
   const p1 = Number(quality?.metrics?.marketing_p1 ?? 100);
   if (p1 < 45) {
-    items.push({ action: "style", value: "top_heavy", label: "More jackpot feel" });
+    items.push({ action: "style", value: "top_heavy", label: "More hero 1st prize" });
   }
   return items.slice(0, 3);
 }
@@ -368,6 +535,7 @@ function summaryHtml(structure, quality, extra = "") {
       </div>
     </div>
     <div class="metrics">${metricBars(quality.metrics)}</div>
+    ${distributionVizHtml(structure)}
     ${extra}
     ${tableHtml(structure)}`;
 }
@@ -425,7 +593,7 @@ $("#known-field").addEventListener("change", () => {
 });
 generateForm.elements.winners_mode.addEventListener("change", applyContext);
 generateForm.elements.min_mode.addEventListener("change", applyContext);
-["prize_pool", "winners_value", "style", "entrants"].forEach((name) => {
+["prize_pool", "winners_value", "entrants"].forEach((name) => {
   generateForm.elements[name]?.addEventListener("change", () => {
     showSuggestions(buildFormSuggestions(generatePayload(generateForm)));
   });
@@ -529,5 +697,6 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+renderStyleCards();
 renderRecipes();
 loadRecipe("flash");
