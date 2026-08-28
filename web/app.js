@@ -338,10 +338,18 @@ function selectStyle(styleId) {
   schedulePreview();
 }
 
+function bucketSize(bucket) {
+  const start = bucket.start ?? bucket.from;
+  const end = bucket.end ?? bucket.to;
+  if (start == null || end == null) return 0;
+  return end - start + 1;
+}
+
 function rankAmounts(structure) {
   const amounts = [];
   for (const bucket of structure.buckets || []) {
-    for (let i = 0; i < bucket.size; i += 1) amounts.push(bucket.amount_cents);
+    const count = bucketSize(bucket);
+    for (let i = 0; i < count; i += 1) amounts.push(bucket.amount_cents);
   }
   return amounts;
 }
@@ -672,9 +680,11 @@ function metricBars(metrics = {}) {
 function tableHtml(structure) {
   const pool = structure.prize_pool_cents || 1;
   const rows = (structure.buckets || []).map((b) => {
-    const podium = b.start <= 3 ? "podium" : "";
-    const places = b.start === b.end ? `${b.start}` : `${b.start}–${b.end}`;
-    const share = ((b.amount_cents * ((b.end - b.start) + 1)) / pool) * 100;
+    const start = b.start ?? b.from;
+    const end = b.end ?? b.to;
+    const podium = start <= 3 ? "podium" : "";
+    const places = start === end ? `${start}` : `${start}–${end}`;
+    const share = ((b.amount_cents * bucketSize(b)) / pool) * 100;
     return `<tr class="${podium}"><td>${places}</td><td class="money">${money(b.amount_cents, structure.currency)}</td><td class="money">${share.toFixed(1)}%</td></tr>`;
   }).join("");
   return `<div class="table-wrap"><table id="payout-table">
@@ -734,9 +744,11 @@ function tableExportText(structure, normalized = null, delimiter = "\t", { inclu
   }
   lines.push(["Place", "Prize", "Currency", "Pool %"].join(delimiter));
   for (const b of structure.buckets || []) {
-    const places = b.start === b.end ? `${b.start}` : `${b.start}-${b.end}`;
+    const start = b.start ?? b.from;
+    const end = b.end ?? b.to;
+    const places = start === end ? `${start}` : `${start}-${end}`;
     const amt = (b.amount_cents / 100).toFixed(2);
-    const share = ((b.amount_cents * b.size / pool) * 100).toFixed(1);
+    const share = ((b.amount_cents * bucketSize(b) / pool) * 100).toFixed(1);
     lines.push([places, amt, currency, share].join(delimiter));
   }
   return lines.join("\n");
@@ -820,9 +832,9 @@ function renderGenerate(target, result, payload, normalized = null) {
     ];
     target.innerHTML = `
       <div class="result-actions export-menu">
-        <button type="button" class="btn ghost" data-copy="tsv">Copy for Sheets</button>
-        <button type="button" class="btn ghost" data-copy="csv">Copy CSV</button>
-        <button type="button" class="btn ghost" data-download="csv">Download CSV</button>
+        <button type="button" class="btn secondary" data-copy="tsv">Copy for Sheets</button>
+        <button type="button" class="btn secondary" data-copy="csv">Copy CSV</button>
+        <button type="button" class="btn secondary" data-download="csv">Download CSV</button>
         <p class="micro">Includes pool setup + ladder — ready for Google Sheets or CMS paste.</p>
       </div>
       <p class="preview-note">Live preview — ladder updates as you change the template.</p>

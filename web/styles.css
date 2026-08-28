@@ -456,6 +456,7 @@ input:focus, select:focus, textarea:focus {
   background: transparent;
   color: var(--ivory);
   padding: 8px 14px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 .chip.is-selected {
   background: rgba(208, 255, 67, 0.12);
@@ -470,7 +471,31 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
 }
 .btn.primary:hover { box-shadow: 0 0 22px rgba(208, 255, 67, 0.35); }
-.btn.ghost { border-radius: 999px; color: var(--ash); }
+.btn.secondary {
+  border-radius: 999px;
+  background: rgba(120, 29, 255, 0.24);
+  border-color: var(--violet-60);
+  color: var(--ivory);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.btn.secondary:hover {
+  background: rgba(120, 29, 255, 0.38);
+  border-color: var(--lime);
+  color: var(--lime);
+  box-shadow: 0 0 20px rgba(120, 29, 255, 0.28);
+}
+.btn.secondary:active { transform: translateY(1px); }
+.btn.ghost {
+  border-radius: 999px;
+  color: var(--ash);
+  background: rgba(255, 255, 255, 0.04);
+}
+.btn.ghost:hover {
+  color: var(--ivory);
+  border-color: var(--violet-60);
+  background: rgba(120, 29, 255, 0.14);
+}
 .btn:disabled { opacity: 0.55; cursor: wait; }
 .micro { margin: 0; color: var(--ash); font-size: 12px; }
 
