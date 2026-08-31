@@ -765,12 +765,10 @@ function generateResultsHtml(structure, quality, extra = "", normalized = null) 
       ${tableHtml(structure)}
       ${extra}
     </section>
-    <details class="analysis-drawer">
-      <summary>Quality &amp; distribution</summary>
-      <div class="analysis-drawer-body">
-        ${analysisPanelHtml(structure, quality, normalized)}
-      </div>
-    </details>`;
+    <section class="analysis-panel" aria-label="Quality and distribution">
+      <h2 class="analysis-heading">Quality &amp; distribution</h2>
+      ${analysisPanelHtml(structure, quality, normalized)}
+    </section>`;
 }
 
 function updateResultsHeader(structure, quality, normalized = null) {

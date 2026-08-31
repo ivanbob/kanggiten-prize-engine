@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=ladder-first" />
+    <link rel="stylesheet" href="/assets/styles.css?v=analysis-open" />
   </head>
   <body>
     <div class="app">
@@ -47,9 +47,12 @@
 
             <div class="recipes" id="recipe-list" role="group" aria-label="Race templates"></div>
 
-            <label class="toggle" data-when="slot" id="known-field-row">
-              <input type="checkbox" id="known-field" />
-              <span>I have an expected field size</span>
+            <label class="toggle toggle-stacked" data-when="slot" id="known-field-row">
+              <span class="toggle-row">
+                <input type="checkbox" id="known-field" />
+                <span class="tip-label" title="Shows player count and lets you pay a fixed number of places or a percentage of the field. Leave off if you only set paid places.">Set expected player count</span>
+              </span>
+              <span class="toggle-note">Optional — unlocks “% of field” paid places</span>
             </label>
 
             <div class="grid-2">
@@ -91,7 +94,7 @@
             </div>
 
             <div class="grid-2">
-              <label data-when="field" hidden>Expected players
+              <label data-when="field" hidden>Expected player count
                 <input name="entrants" type="number" min="1" step="1" value="80" />
               </label>
               <label id="winners-value-wrap"><span data-label="winners">Paid places</span>
@@ -206,6 +209,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=ladder-first"></script>
+    <script src="/assets/app.js?v=analysis-open"></script>
   </body>
 </html>
