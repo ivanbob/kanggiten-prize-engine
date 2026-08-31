@@ -99,10 +99,10 @@ const CONTEXT_COPY = {
 };
 
 const COPY = {
-  generate: ["New structure", "Generate a prize table", "Pick a template — preview updates as you edit."],
-  analyze: ["Audit", "Analyze a published ladder", "Score niceness, compactness, and mid-field value."],
-  optimize: ["Rewrite", "Optimize an existing table", "Keep the contract. Clean the widget."],
-  recalibrate: ["Growing pool", "Recalibrate a guarantee", "Same philosophy, new prize pool."],
+  generate: ["Prize ladder", "Pick a template — table updates live on the right."],
+  analyze: ["Analyze ladder", "Paste a published table to score quality."],
+  optimize: ["Optimize ladder", "Keep the contract. Clean the widget."],
+  recalibrate: ["Recalibrate pool", "Same philosophy, new guarantee."],
 };
 
 const KPI_HELP = {
@@ -725,6 +725,65 @@ function summaryHtml(structure, quality, extra = "", normalized = null) {
     ${tableHtml(structure)}`;
 }
 
+function resultHeadlineHtml(structure, quality, normalized = null) {
+  const currency = structure.currency;
+  const pool = money(structure.prize_pool_cents, currency);
+  const first = money(structure.top_prize_cents, currency);
+  const style = STYLE_LABEL[structure.style] || structure.style;
+  const score = Number(quality.score).toFixed(0);
+  const guarantee = normalized?.pool_mode === "cumulative" && normalized.contribution_cents > 0
+    ? `<span class="headline-chip">${money(normalized.guarantee_cents, currency)} guarantee</span>
+       <span class="headline-chip">+ ${money(normalized.contribution_cents, currency)} bets</span>`
+    : "";
+  return `
+    <div class="result-headline">
+      ${guarantee}
+      <span class="headline-chip headline-chip-strong">${pool} pool</span>
+      <span class="headline-chip">${first} to 1st</span>
+      <span class="headline-chip">${structure.winner_count} paid</span>
+      <span class="headline-chip">${style}</span>
+      <span class="headline-chip headline-quality" title="${KPI_HELP.quality}">Q ${score}</span>
+    </div>`;
+}
+
+function analysisPanelHtml(structure, quality, normalized = null) {
+  return `
+    <div class="summary">
+      <div class="score">${tipLabel('<span class="overline">Quality</span>', KPI_HELP.quality)}<b>${Number(quality.score).toFixed(0)}</b></div>
+      <div class="kpis">
+        ${poolKpiHtml(structure, normalized)}
+      </div>
+    </div>
+    <div class="metrics">${metricBars(quality.metrics)}</div>
+    ${distributionVizHtml(structure)}`;
+}
+
+function generateResultsHtml(structure, quality, extra = "", normalized = null) {
+  return `
+    ${resultHeadlineHtml(structure, quality, normalized)}
+    <section class="ladder-primary" aria-label="Prize ladder">
+      ${tableHtml(structure)}
+      ${extra}
+    </section>
+    <details class="analysis-drawer">
+      <summary>Quality &amp; distribution</summary>
+      <div class="analysis-drawer-body">
+        ${analysisPanelHtml(structure, quality, normalized)}
+      </div>
+    </details>`;
+}
+
+function updateResultsHeader(structure, quality, normalized = null) {
+  const subtitle = $("#view-subtitle");
+  if (!subtitle || !structure) return;
+  const currency = structure.currency;
+  const pool = money(structure.prize_pool_cents, currency);
+  const first = money(structure.top_prize_cents, currency);
+  const style = STYLE_LABEL[structure.style] || structure.style;
+  const score = Number(quality.score).toFixed(0);
+  subtitle.textContent = `${pool} pool · ${structure.winner_count} paid · ${first} to 1st · ${style} · Q ${score}`;
+}
+
 function tableExportText(structure, normalized = null, delimiter = "\t", { includeMeta = true } = {}) {
   const pool = structure.prize_pool_cents || 1;
   const currency = structure.currency || "EUR";
@@ -776,9 +835,20 @@ function downloadTableExport(structure, normalized, delimiter = ",") {
 function showResultsPanel(show) {
   const stage = $("#view-generate");
   const panel = $("#generate-results");
+  const wasHidden = panel.hidden;
   stage.classList.toggle("has-results", show);
   panel.hidden = !show;
   $("#generate-submit").textContent = show ? "Refresh table" : "Generate table";
+  if (!show) {
+    const subtitle = $("#view-subtitle");
+    if (subtitle) subtitle.textContent = COPY.generate[1];
+    return;
+  }
+  if (wasHidden) {
+    requestAnimationFrame(() => {
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 }
 
 function schedulePreview() {
@@ -831,16 +901,22 @@ function renderGenerate(target, result, payload, normalized = null) {
       ...(structure.warnings || []),
     ];
     target.innerHTML = `
-      <div class="result-actions export-menu">
-        <button type="button" class="btn secondary" data-copy="tsv">Copy for Sheets</button>
-        <button type="button" class="btn secondary" data-copy="csv">Copy CSV</button>
-        <button type="button" class="btn secondary" data-download="csv">Download CSV</button>
-        <p class="micro">Includes pool setup + ladder — ready for Google Sheets or CMS paste.</p>
+      <div class="result-toolbar">
+        <div class="result-actions export-menu">
+          <button type="button" class="btn secondary" data-copy="tsv">Copy for Sheets</button>
+          <button type="button" class="btn secondary" data-copy="csv">Copy CSV</button>
+          <button type="button" class="btn secondary" data-download="csv">Download CSV</button>
+        </div>
+        <div class="candidates">${chips}</div>
       </div>
-      <p class="preview-note">Live preview — ladder updates as you change the template.</p>
-      <div class="candidates">${chips}</div>
-      ${summaryHtml(structure, candidate.quality, flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "", normalized)}
+      ${generateResultsHtml(
+        structure,
+        candidate.quality,
+        flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "",
+        normalized,
+      )}
     `;
+    updateResultsHeader(structure, candidate.quality, normalized);
     $$(".chip", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
     $$("[data-copy]", target).forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -859,10 +935,10 @@ function renderGenerate(target, result, payload, normalized = null) {
 
 function setView(name) {
   $$(".stage").forEach((stage) => stage.classList.toggle("is-hidden", stage.id !== `view-${name}`));
-  const [kicker, title, hint] = COPY[name] || COPY.generate;
-  $("#view-kicker").textContent = kicker;
+  const [title, subtitle] = COPY[name] || COPY.generate;
   $("#view-title").textContent = title;
-  $("#view-hint").textContent = hint;
+  const sub = $("#view-subtitle");
+  if (sub) sub.textContent = subtitle;
 }
 
 const generateForm = $("#generate-form");
