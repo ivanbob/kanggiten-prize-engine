@@ -19,6 +19,31 @@ const STYLE_LABEL = {
   flat: "Wide board",
 };
 
+const CURRENCY_SYMBOLS = {
+  EUR: "€",
+  USD: "$",
+  GBP: "£",
+  DKK: "kr",
+  NOK: "kr",
+  SEK: "kr",
+  CZK: "Kč",
+  TRY: "₺",
+  PLN: "zł",
+};
+
+const FX_OVERRIDE_KEY = "kanggiten-fx-overrides-v1";
+const EXPORT_MODE_KEY = "kanggiten-export-mode-v1";
+const GEO_LABEL = {
+  tier1_eu: "Tier-1 EU",
+  nordics: "Nordics",
+  cee: "CEE",
+  tr: "Turkey",
+};
+
+let exportMode = localStorage.getItem(EXPORT_MODE_KEY) || "grouped";
+let liveFxRates = null; // { base, rates, as_of, source }
+let lastGeoFit = null;
+
 const STYLE_OPTIONS = {
   balanced: {
     title: "Engage the field",
@@ -51,43 +76,69 @@ const RECIPES = {
     flash: {
       title: "Flash race",
       why: "Lobby promo · €5k · 12 places",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 5000, winners_mode: "count", winners_value: 12, style: "balanced", min_mode: "fixed", min_value: 1, max_buckets: 10 },
     },
     daily: {
       title: "Daily slot",
       why: "Standard daily board · €50k · 50 places",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 50000, winners_mode: "count", winners_value: 50, style: "balanced", min_mode: "fixed", min_value: 1, max_buckets: 12 },
     },
     weekly: {
       title: "Weekly board",
       why: "Long board · €250k · wide field",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 250000, winners_mode: "count", winners_value: 100, style: "flat", min_mode: "fixed", min_value: 1, max_buckets: 12 },
     },
     jackpot: {
       title: "Jackpot weekend",
       why: "Hero 1st prize · €100k marketing",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 100000, winners_mode: "count", winners_value: 30, style: "top_heavy", min_mode: "fixed", min_value: 2, max_buckets: 12 },
     },
     micro: {
       title: "Micro race",
       why: "Tiny guarantee, tight widget",
+      geo: "cee",
       values: { currency: "EUR", prize_pool: 1000, winners_mode: "count", winners_value: 8, style: "balanced", min_mode: "fixed", min_value: 0.5, max_buckets: 8 },
+    },
+    nordic_daily: {
+      title: "Nordic daily",
+      why: "Wider board · DKK · flatter P1",
+      geo: "nordics",
+      values: { currency: "DKK", prize_pool: 200000, winners_mode: "count", winners_value: 80, style: "flat", min_mode: "fixed", min_value: 50, max_buckets: 12 },
+    },
+    tr_weekend: {
+      title: "TR weekend hero",
+      why: "Compact widget · TRY · strong P1",
+      geo: "tr",
+      values: { currency: "TRY", prize_pool: 500000, winners_mode: "count", winners_value: 25, style: "top_heavy", min_mode: "fixed", min_value: 100, max_buckets: 10 },
+    },
+    cee_flash: {
+      title: "CEE flash",
+      why: "Tight paid places · CZK",
+      geo: "cee",
+      values: { currency: "CZK", prize_pool: 100000, winners_mode: "count", winners_value: 15, style: "balanced", min_mode: "fixed", min_value: 50, max_buckets: 10 },
     },
   },
   ticketed: {
     flash: {
       title: "Sit & go style",
       why: "Small ticketed field",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 5000, entrants: 80, entry_fee: 50, winners_mode: "count", winners_value: 12, style: "balanced", min_mode: "entry_multiple", min_value: 1.5, max_buckets: 10 },
     },
     daily: {
       title: "Soft field MTT",
       why: "Daily ticketed volume",
+      geo: "tier1_eu",
       values: { currency: "EUR", prize_pool: 50000, entrants: 2000, entry_fee: 25, winners_mode: "percentage", winners_value: 15, style: "balanced", min_mode: "entry_multiple", min_value: 1.5, max_buckets: 12 },
     },
     weekly: {
       title: "Soft weekly",
       why: "Wide midfield board",
+      geo: "nordics",
       values: { currency: "EUR", prize_pool: 250000, entrants: 20000, entry_fee: 10, winners_mode: "percentage", winners_value: 10, style: "flat", min_mode: "entry_multiple", min_value: 1.5, max_buckets: 12 },
     },
   },
@@ -143,22 +194,25 @@ function toast(message, ok = false) {
 }
 
 function money(cents, currency = "EUR") {
-  const symbols = { EUR: "€", USD: "$", GBP: "£" };
+  const code = (currency || "EUR").toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code];
   const value = (cents / 100).toLocaleString(undefined, {
     minimumFractionDigits: cents % 100 ? 2 : 0,
     maximumFractionDigits: 2,
   });
-  return `${symbols[currency] || currency + " "}${value}`;
+  if (symbol === "kr") return `${value} ${code}`;
+  return `${symbol || code + " "}${value}`;
 }
 
 function formatPool(amount, currency = "EUR") {
-  const symbols = { EUR: "€", USD: "$", GBP: "£" };
+  const code = (currency || "EUR").toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code];
   const n = Number(amount);
-  if (n >= 1000) {
-    const compact = n % 1000 === 0 ? `${n / 1000}k` : `${(n / 1000).toFixed(1)}k`;
-    return `${symbols[currency] || ""}${compact}`;
-  }
-  return `${symbols[currency] || ""}${n}`;
+  const compact = n >= 1000
+    ? (n % 1000 === 0 ? `${n / 1000}k` : `${(n / 1000).toFixed(1)}k`)
+    : `${n}`;
+  if (symbol === "kr") return `${compact} ${code}`;
+  return `${symbol || ""}${compact}`;
 }
 
 function recipeMeta(recipe) {
@@ -225,6 +279,9 @@ function fillForm(form, data) {
     const known = $("#known-field");
     if (known) known.checked = Boolean(data.known_field);
   }
+  if ("geo" in data && form.elements.geo) {
+    form.elements.geo.value = data.geo || "";
+  }
   if (data.style) syncStyleCards(data.style);
   applyContext();
 }
@@ -247,6 +304,7 @@ function formValuesFromForm(form) {
     max_buckets: Number(form.elements.max_buckets.value),
     nice_profile: form.elements.nice_profile.value,
     known_field: $("#known-field")?.checked || false,
+    geo: form.elements.geo?.value || "",
   };
 }
 
@@ -494,9 +552,10 @@ function renderRecipes() {
   }
   const builtInHtml = Object.entries(builtIn).map(([id, recipe]) => {
     const selected = selectedRecipeId === id;
+    const geo = recipe.geo ? `<span class="recipe-geo">${GEO_LABEL[recipe.geo] || recipe.geo}</span>` : "";
     return `
     <button type="button" class="recipe ${selected ? "is-selected" : ""}" data-source="builtin" data-preset="${id}">
-      <span class="recipe-title">${recipe.title}</span>
+      <span class="recipe-title">${recipe.title}${geo}</span>
       <span class="recipe-meta">${recipeMeta(recipe)}</span>
       <span class="recipe-why">${recipe.why}</span>
     </button>`;
@@ -557,6 +616,9 @@ function loadRecipe(id) {
   if (!recipe) return;
   selectedRecipeId = id;
   fillForm(generateForm, recipe.values);
+  if (recipe.geo && generateForm.elements.geo) {
+    generateForm.elements.geo.value = recipe.geo;
+  }
   renderRecipes();
   clearSuggestions();
   schedulePreview();
@@ -640,10 +702,157 @@ function buildResultSuggestions(quality, payload) {
   return items.slice(0, 3);
 }
 
+function buildGeoSuggestions(geoFit) {
+  if (!geoFit?.preferred_styles?.length) return [];
+  const items = [];
+  const preferred = geoFit.preferred_styles[0];
+  if (preferred && STYLE_OPTIONS[preferred]) {
+    items.push({
+      action: "style",
+      value: preferred,
+      label: `Geo tip: ${STYLE_LABEL[preferred] || preferred}`,
+    });
+  }
+  const hint = geoFit.recipe_hints?.[0];
+  if (hint && RECIPES[eventContext]?.[hint]) {
+    items.push({ action: "recipe", value: hint, label: `Load ${RECIPES[eventContext][hint].title}` });
+  }
+  return items;
+}
+
 function parseExisting(raw) {
   const parsed = JSON.parse(raw);
   if (!parsed.payouts) throw new Error("JSON needs a payouts array.");
   return parsed;
+}
+
+function loadFxOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(FX_OVERRIDE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveFxOverrides(map) {
+  localStorage.setItem(FX_OVERRIDE_KEY, JSON.stringify(map));
+}
+
+function effectiveFxRates() {
+  const base = liveFxRates?.rates ? { ...liveFxRates.rates } : { EUR: 1 };
+  const overrides = loadFxOverrides();
+  for (const [code, value] of Object.entries(overrides)) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) base[code] = n;
+  }
+  return base;
+}
+
+function poolEurEstimate(structure) {
+  const currency = (structure.currency || "EUR").toUpperCase();
+  const poolMajor = (structure.prize_pool_cents || 0) / 100;
+  if (currency === "EUR") return poolMajor;
+  const rates = effectiveFxRates();
+  const rate = rates[currency];
+  if (!rate || rate <= 0) return poolMajor;
+  return poolMajor / rate;
+}
+
+async function fetchGeoFit(structure, payload) {
+  const geo = generateForm.elements.geo?.value;
+  if (!geo) return null;
+  try {
+    return await api("/v1/payouts/geo-fit", {
+      geo,
+      currency: structure.currency,
+      prize_pool_cents: structure.prize_pool_cents,
+      winner_count: structure.winner_count,
+      top_prize_cents: structure.top_prize_cents,
+      style: structure.style,
+      pool_eur_estimate: poolEurEstimate(structure),
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function refreshFxRates({ silent = false } = {}) {
+  try {
+    const res = await fetch("/v1/fx/rates?base=EUR");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(typeof data.detail === "string" ? data.detail : "FX fetch failed");
+    }
+    liveFxRates = data;
+    renderFxTable();
+    if (!silent) toast(`FX updated · ${data.source} · ${data.as_of}`, true);
+  } catch (err) {
+    renderFxTable();
+    if (!silent) toast(err.message || "Could not load FX rates");
+  }
+}
+
+function renderFxTable() {
+  const wrap = $("#fx-table");
+  const badge = $("#fx-source-badge");
+  const meta = $("#fx-meta");
+  if (!wrap) return;
+  const overrides = loadFxOverrides();
+  const hasOverrides = Object.keys(overrides).length > 0;
+  const source = liveFxRates?.source || "—";
+  if (badge) {
+    badge.textContent = hasOverrides ? `${source} + custom` : source;
+    badge.classList.toggle("is-custom", hasOverrides);
+  }
+  if (meta) {
+    meta.textContent = liveFxRates
+      ? `Base ${liveFxRates.base || "EUR"} · as of ${liveFxRates.as_of}. Edit a rate to override for planning.`
+      : "Base EUR. Refresh to load live ECB rates, or type custom rates.";
+  }
+  const codes = Object.keys(CURRENCY_SYMBOLS).filter((c) => c !== "EUR");
+  const rates = effectiveFxRates();
+  wrap.innerHTML = `
+    <table class="fx-table">
+      <thead><tr><th>Currency</th><th>Per 1 EUR</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>EUR</td><td><input type="number" value="1" disabled step="any" /></td><td></td></tr>
+        ${codes.map((code) => {
+          const live = liveFxRates?.rates?.[code];
+          const value = rates[code] ?? "";
+          const custom = overrides[code] != null;
+          return `<tr>
+            <td>${code}${custom ? ' <span class="fx-custom-tag">custom</span>' : ""}</td>
+            <td><input type="number" data-fx-code="${code}" value="${value}" step="0.0001" min="0" placeholder="${live != null ? live : "—"}" /></td>
+            <td>${custom ? `<button type="button" class="btn ghost fx-clear" data-fx-clear="${code}">Live</button>` : ""}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>`;
+  $$("[data-fx-code]", wrap).forEach((input) => {
+    input.addEventListener("change", () => {
+      const code = input.dataset.fxCode;
+      const n = Number(input.value);
+      const map = loadFxOverrides();
+      if (!Number.isFinite(n) || n <= 0) {
+        delete map[code];
+      } else {
+        map[code] = n;
+      }
+      saveFxOverrides(map);
+      renderFxTable();
+      toast(`Saved ${code} rate override`, true);
+      schedulePreview();
+    });
+  });
+  $$("[data-fx-clear]", wrap).forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const map = loadFxOverrides();
+      delete map[btn.dataset.fxClear];
+      saveFxOverrides(map);
+      renderFxTable();
+      schedulePreview();
+    });
+  });
 }
 
 async function api(path, body) {
@@ -725,7 +934,7 @@ function summaryHtml(structure, quality, extra = "", normalized = null) {
     ${tableHtml(structure)}`;
 }
 
-function resultHeadlineHtml(structure, quality, normalized = null) {
+function resultHeadlineHtml(structure, quality, normalized = null, geoFit = null) {
   const currency = structure.currency;
   const pool = money(structure.prize_pool_cents, currency);
   const first = money(structure.top_prize_cents, currency);
@@ -735,6 +944,9 @@ function resultHeadlineHtml(structure, quality, normalized = null) {
     ? `<span class="headline-chip">${money(normalized.guarantee_cents, currency)} guarantee</span>
        <span class="headline-chip">+ ${money(normalized.contribution_cents, currency)} bets</span>`
     : "";
+  const geoChip = geoFit
+    ? `<span class="headline-chip headline-geo" title="${(geoFit.advice || []).join(" · ")}">Geo ${Number(geoFit.score).toFixed(0)} · ${geoFit.geo_title}</span>`
+    : "";
   return `
     <div class="result-headline">
       ${guarantee}
@@ -743,10 +955,17 @@ function resultHeadlineHtml(structure, quality, normalized = null) {
       <span class="headline-chip">${structure.winner_count} paid</span>
       <span class="headline-chip">${style}</span>
       <span class="headline-chip headline-quality" title="${KPI_HELP.quality}">Q ${score}</span>
+      ${geoChip}
     </div>`;
 }
 
-function analysisPanelHtml(structure, quality, normalized = null) {
+function analysisPanelHtml(structure, quality, normalized = null, geoFit = null) {
+  const geoBlock = geoFit ? `
+    <div class="geo-fit-panel">
+      <p class="overline">Geo fit · ${geoFit.geo_title} · ${Number(geoFit.score).toFixed(0)}</p>
+      <div class="metrics">${metricBars(geoFit.breakdown)}</div>
+      <ul class="flags geo-advice">${(geoFit.advice || []).map((a) => `<li>${a}</li>`).join("")}</ul>
+    </div>` : "";
   return `
     <div class="summary">
       <div class="score">${tipLabel('<span class="overline">Quality</span>', KPI_HELP.quality)}<b>${Number(quality.score).toFixed(0)}</b></div>
@@ -755,40 +974,32 @@ function analysisPanelHtml(structure, quality, normalized = null) {
       </div>
     </div>
     <div class="metrics">${metricBars(quality.metrics)}</div>
+    ${geoBlock}
     ${distributionVizHtml(structure)}`;
 }
 
-function generateResultsHtml(structure, quality, extra = "", normalized = null) {
+function generateResultsHtml(structure, quality, extra = "", normalized = null, geoFit = null) {
   return `
-    ${resultHeadlineHtml(structure, quality, normalized)}
+    ${resultHeadlineHtml(structure, quality, normalized, geoFit)}
     <section class="ladder-primary" aria-label="Prize ladder">
       ${tableHtml(structure)}
       ${extra}
     </section>
     <section class="analysis-panel" aria-label="Quality and distribution">
       <h2 class="analysis-heading">Quality &amp; distribution</h2>
-      ${analysisPanelHtml(structure, quality, normalized)}
+      ${analysisPanelHtml(structure, quality, normalized, geoFit)}
     </section>`;
 }
 
-function updateResultsHeader(structure, quality, normalized = null) {
-  const subtitle = $("#view-subtitle");
-  if (!subtitle || !structure) return;
-  const currency = structure.currency;
-  const pool = money(structure.prize_pool_cents, currency);
-  const first = money(structure.top_prize_cents, currency);
-  const style = STYLE_LABEL[structure.style] || structure.style;
-  const score = Number(quality.score).toFixed(0);
-  subtitle.textContent = `${pool} pool · ${structure.winner_count} paid · ${first} to 1st · ${style} · Q ${score}`;
-}
-
-function tableExportText(structure, normalized = null, delimiter = "\t", { includeMeta = true } = {}) {
+function tableExportText(structure, normalized = null, delimiter = "\t", { includeMeta = true, mode = null } = {}) {
   const pool = structure.prize_pool_cents || 1;
   const currency = structure.currency || "EUR";
+  const exportAs = mode || exportMode || "grouped";
   const lines = [];
   if (includeMeta) {
     lines.push(["Field", "Value"].join(delimiter));
     lines.push(["Currency", currency].join(delimiter));
+    lines.push(["Export mode", exportAs === "places" ? "each place" : "grouped tiers"].join(delimiter));
     if (normalized?.pool_mode === "cumulative" && normalized.contribution_cents > 0) {
       lines.push(["Guarantee", (normalized.guarantee_cents / 100).toFixed(2)].join(delimiter));
       lines.push(["Bet contribution", (normalized.contribution_cents / 100).toFixed(2)].join(delimiter));
@@ -800,13 +1011,25 @@ function tableExportText(structure, normalized = null, delimiter = "\t", { inclu
     lines.push("");
   }
   lines.push(["Place", "Prize", "Currency", "Pool %"].join(delimiter));
-  for (const b of structure.buckets || []) {
-    const start = b.start ?? b.from;
-    const end = b.end ?? b.to;
-    const places = start === end ? `${start}` : `${start}-${end}`;
-    const amt = (b.amount_cents / 100).toFixed(2);
-    const share = ((b.amount_cents * bucketSize(b) / pool) * 100).toFixed(1);
-    lines.push([places, amt, currency, share].join(delimiter));
+  if (exportAs === "places") {
+    for (const b of structure.buckets || []) {
+      const start = b.start ?? b.from;
+      const end = b.end ?? b.to;
+      const amt = (b.amount_cents / 100).toFixed(2);
+      const share = ((b.amount_cents / pool) * 100).toFixed(1);
+      for (let place = start; place <= end; place += 1) {
+        lines.push([place, amt, currency, share].join(delimiter));
+      }
+    }
+  } else {
+    for (const b of structure.buckets || []) {
+      const start = b.start ?? b.from;
+      const end = b.end ?? b.to;
+      const places = start === end ? `${start}` : `${start}-${end}`;
+      const amt = (b.amount_cents / 100).toFixed(2);
+      const share = ((b.amount_cents * bucketSize(b) / pool) * 100).toFixed(1);
+      lines.push([places, amt, currency, share].join(delimiter));
+    }
   }
   return lines.join("\n");
 }
@@ -888,7 +1111,7 @@ async function runGenerate({ silent = false } = {}) {
 
 function renderGenerate(target, result, payload, normalized = null) {
   const candidates = result.candidates || [];
-  const paint = (index) => {
+  const paint = async (index) => {
     const candidate = candidates[index];
     const structure = candidate.structure;
     const chips = candidates.map((c, i) =>
@@ -898,9 +1121,15 @@ function renderGenerate(target, result, payload, normalized = null) {
       ...(candidate.validation.errors || []).map((e) => e.message),
       ...(structure.warnings || []),
     ];
+    const geoFit = await fetchGeoFit(structure, payload);
+    lastGeoFit = geoFit;
     target.innerHTML = `
       <div class="result-toolbar">
         <div class="result-actions export-menu">
+          <div class="export-mode" role="group" aria-label="Export row mode">
+            <button type="button" class="chip ${exportMode === "grouped" ? "is-selected" : ""}" data-export-mode="grouped">Grouped tiers</button>
+            <button type="button" class="chip ${exportMode === "places" ? "is-selected" : ""}" data-export-mode="places">Each place</button>
+          </div>
           <button type="button" class="btn secondary" data-copy="tsv">Copy for Sheets</button>
           <button type="button" class="btn secondary" data-copy="csv">Copy CSV</button>
           <button type="button" class="btn secondary" data-download="csv">Download CSV</button>
@@ -912,23 +1141,47 @@ function renderGenerate(target, result, payload, normalized = null) {
         candidate.quality,
         flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "",
         normalized,
+        geoFit,
       )}
     `;
-    updateResultsHeader(structure, candidate.quality, normalized);
-    $$(".chip", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
+    updateResultsHeader(structure, candidate.quality, normalized, geoFit);
+    $$(".chip[data-idx]", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
+    $$("[data-export-mode]", target).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        exportMode = btn.dataset.exportMode;
+        localStorage.setItem(EXPORT_MODE_KEY, exportMode);
+        $$("[data-export-mode]", target).forEach((b) => b.classList.toggle("is-selected", b.dataset.exportMode === exportMode));
+        toast(exportMode === "places" ? "Export: one row per place" : "Export: grouped tiers", true);
+      });
+    });
     $$("[data-copy]", target).forEach((btn) => {
       btn.addEventListener("click", () => {
         copyTableExport(structure, normalized, btn.dataset.copy === "csv" ? "," : "\t").catch(() => toast("Could not copy — check browser permissions"));
       });
     });
     $("[data-download]", target)?.addEventListener("click", () => downloadTableExport(structure, normalized));
-    showSuggestions(buildResultSuggestions(candidate.quality, payload));
+    showSuggestions([
+      ...buildResultSuggestions(candidate.quality, payload),
+      ...buildGeoSuggestions(geoFit),
+    ].slice(0, 4));
   };
   if (!candidates.length) {
     target.innerHTML = `<p class="flags">No candidate returned.</p>`;
     return;
   }
   paint(0);
+}
+
+function updateResultsHeader(structure, quality, normalized = null, geoFit = null) {
+  const subtitle = $("#view-subtitle");
+  if (!subtitle || !structure) return;
+  const currency = structure.currency;
+  const pool = money(structure.prize_pool_cents, currency);
+  const first = money(structure.top_prize_cents, currency);
+  const style = STYLE_LABEL[structure.style] || structure.style;
+  const score = Number(quality.score).toFixed(0);
+  const geoBit = geoFit ? ` · Geo ${Number(geoFit.score).toFixed(0)} (${geoFit.geo_title})` : "";
+  subtitle.textContent = `${pool} pool · ${structure.winner_count} paid · ${first} to 1st · ${style} · Q ${score}${geoBit}`;
 }
 
 function setView(name) {
@@ -972,6 +1225,14 @@ $("#cumulative-pool").addEventListener("change", () => {
 ["prize_pool", "winners_value", "entrants", "contribution_rate", "expected_total_wager", "currency"].forEach((name) => {
   generateForm.elements[name]?.addEventListener("input", schedulePreview);
   generateForm.elements[name]?.addEventListener("change", schedulePreview);
+});
+generateForm.elements.geo?.addEventListener("change", schedulePreview);
+$("#fx-refresh-btn")?.addEventListener("click", () => refreshFxRates());
+$("#fx-reset-btn")?.addEventListener("click", () => {
+  saveFxOverrides({});
+  renderFxTable();
+  toast("FX overrides cleared", true);
+  schedulePreview();
 });
 ["max_buckets", "min_value"].forEach((name) => {
   generateForm.elements[name]?.addEventListener("change", schedulePreview);
@@ -1071,4 +1332,6 @@ document.addEventListener("keydown", (event) => {
 
 renderStyleCards();
 renderRecipes();
+renderFxTable();
+refreshFxRates({ silent: true });
 loadRecipe("flash");

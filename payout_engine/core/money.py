@@ -44,15 +44,38 @@ def cents_to_major_float(cents: int) -> float:
     return float(cents_to_major(cents))
 
 
+# Display symbols for supported operator currencies (all use 2-decimal minor units).
+CURRENCY_SYMBOLS: dict[str, str] = {
+    "EUR": "€",
+    "USD": "$",
+    "GBP": "£",
+    "DKK": "kr",
+    "NOK": "kr",
+    "SEK": "kr",
+    "CZK": "Kč",
+    "TRY": "₺",
+    "PLN": "zł",
+}
+
+SUPPORTED_CURRENCIES: tuple[str, ...] = tuple(CURRENCY_SYMBOLS.keys())
+
+
+def currency_symbol(currency: str) -> str:
+    code = currency.upper()
+    return CURRENCY_SYMBOLS.get(code, f"{code} ")
+
+
 def format_cents(cents: int, currency: str = "EUR") -> str:
     """Human-readable cashier amount, e.g. €10,000 or €20.50."""
-    symbols = {"EUR": "€", "USD": "$", "GBP": "£"}
-    symbol = symbols.get(currency.upper(), f"{currency.upper()} ")
+    symbol = currency_symbol(currency)
     major = cents_to_major(cents)
     if cents % 100 == 0:
         body = f"{int(major):,}"
     else:
         body = f"{major:,.2f}"
+    # Nordic/CEE codes that share "kr" read clearer with a trailing code when ambiguous.
+    if symbol == "kr":
+        return f"{body} {currency.upper()}"
     return f"{symbol}{body}"
 
 

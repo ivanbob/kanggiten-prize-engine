@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=analysis-open" />
+    <link rel="stylesheet" href="/assets/styles.css?v=geo-fx" />
   </head>
   <body>
     <div class="app">
@@ -58,9 +58,24 @@
             <div class="grid-2">
               <label>Currency
                 <select name="currency">
-                  <option value="EUR" selected>EUR</option>
+                  <option value="EUR" selected>EUR — Tier-1 EU</option>
                   <option value="USD">USD</option>
                   <option value="GBP">GBP</option>
+                  <option value="DKK">DKK — Denmark</option>
+                  <option value="NOK">NOK — Norway</option>
+                  <option value="SEK">SEK — Sweden</option>
+                  <option value="CZK">CZK — Czechia</option>
+                  <option value="TRY">TRY — Turkey</option>
+                  <option value="PLN">PLN — Poland</option>
+                </select>
+              </label>
+              <label><span class="tip-label" title="Scores how well this ladder matches typical prize pools and payout shapes for the market. Heuristic until ops samples arrive.">Target geo</span>
+                <select name="geo" id="geo-select">
+                  <option value="">No geo fit</option>
+                  <option value="tier1_eu">Tier-1 EU</option>
+                  <option value="nordics">Nordics</option>
+                  <option value="cee">CEE</option>
+                  <option value="tr">Turkey</option>
                 </select>
               </label>
             </div>
@@ -134,6 +149,17 @@
                       <option value="standard">Standard</option>
                     </select>
                   </label>
+                </div>
+                <div class="fx-panel" id="fx-panel">
+                  <div class="fx-panel-head">
+                    <p class="overline">Exchange rates <span id="fx-source-badge" class="fx-badge">—</span></p>
+                    <div class="fx-actions">
+                      <button type="button" class="btn ghost" id="fx-refresh-btn">Refresh rates</button>
+                      <button type="button" class="btn ghost" id="fx-reset-btn">Reset overrides</button>
+                    </div>
+                  </div>
+                  <p class="micro" id="fx-meta">Base EUR. Live ECB rates; override any currency for local planning.</p>
+                  <div class="fx-table-wrap" id="fx-table"></div>
                 </div>
               </div>
             </details>
@@ -209,6 +235,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=analysis-open"></script>
+    <script src="/assets/app.js?v=geo-fx"></script>
   </body>
 </html>

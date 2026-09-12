@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +18,10 @@ from payout_engine.core.models import (
     RecalibrateRequest,
     TournamentInput,
 )
+from payout_engine.core.money import SUPPORTED_CURRENCIES
 from payout_engine.core.normalizer import NormalizationError
+from payout_engine.fx import get_default_provider
+from payout_engine.geo import GeoFitRequest, GeoFitResult, list_geo_profiles, score_geo_fit
 from payout_engine.operations import analyze, generate, optimize, recalibrate
 from payout_engine.optimizers.heuristic import HeuristicError
 
@@ -51,6 +54,37 @@ def optimize_endpoint(body: ExistingPayoutInput) -> OptimizeResult:
 @app.post("/v1/payouts/recalibrate", response_model=GenerateResult)
 def recalibrate_endpoint(body: RecalibrateRequest) -> GenerateResult:
     return _run(lambda: recalibrate(body))
+
+
+@app.post("/v1/payouts/geo-fit", response_model=GeoFitResult)
+def geo_fit_endpoint(body: GeoFitRequest) -> GeoFitResult:
+    return _run(lambda: score_geo_fit(body))
+
+
+@app.get("/v1/geo/profiles")
+def geo_profiles_endpoint() -> dict:
+    return {"profiles": list_geo_profiles()}
+
+
+@app.get("/v1/fx/rates")
+def fx_rates_endpoint(base: str = Query(default="EUR")) -> dict:
+    base = base.upper()
+    if base not in SUPPORTED_CURRENCIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unsupported base currency {base}; expected one of {', '.join(SUPPORTED_CURRENCIES)}",
+        )
+    try:
+        provider = get_default_provider()
+        rates = provider.get_rates(base=base)
+        return rates.to_public_dict()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/v1/currencies")
+def currencies_endpoint() -> dict:
+    return {"currencies": list(SUPPORTED_CURRENCIES)}
 
 
 @app.get("/health")
