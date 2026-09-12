@@ -33,16 +33,9 @@ const CURRENCY_SYMBOLS = {
 
 const FX_OVERRIDE_KEY = "kanggiten-fx-overrides-v1";
 const EXPORT_MODE_KEY = "kanggiten-export-mode-v1";
-const GEO_LABEL = {
-  tier1_eu: "Tier-1 EU",
-  nordics: "Nordics",
-  cee: "CEE",
-  tr: "Turkey",
-};
 
 let exportMode = localStorage.getItem(EXPORT_MODE_KEY) || "grouped";
 let liveFxRates = null; // { base, rates, as_of, source }
-let lastGeoFit = null;
 
 const STYLE_OPTIONS = {
   balanced: {
@@ -279,9 +272,6 @@ function fillForm(form, data) {
     const known = $("#known-field");
     if (known) known.checked = Boolean(data.known_field);
   }
-  if ("geo" in data && form.elements.geo) {
-    form.elements.geo.value = data.geo || "";
-  }
   if (data.style) syncStyleCards(data.style);
   applyContext();
 }
@@ -304,7 +294,6 @@ function formValuesFromForm(form) {
     max_buckets: Number(form.elements.max_buckets.value),
     nice_profile: form.elements.nice_profile.value,
     known_field: $("#known-field")?.checked || false,
-    geo: form.elements.geo?.value || "",
   };
 }
 
@@ -552,10 +541,9 @@ function renderRecipes() {
   }
   const builtInHtml = Object.entries(builtIn).map(([id, recipe]) => {
     const selected = selectedRecipeId === id;
-    const geo = recipe.geo ? `<span class="recipe-geo">${GEO_LABEL[recipe.geo] || recipe.geo}</span>` : "";
     return `
     <button type="button" class="recipe ${selected ? "is-selected" : ""}" data-source="builtin" data-preset="${id}">
-      <span class="recipe-title">${recipe.title}${geo}</span>
+      <span class="recipe-title">${recipe.title}</span>
       <span class="recipe-meta">${recipeMeta(recipe)}</span>
       <span class="recipe-why">${recipe.why}</span>
     </button>`;
@@ -616,9 +604,6 @@ function loadRecipe(id) {
   if (!recipe) return;
   selectedRecipeId = id;
   fillForm(generateForm, recipe.values);
-  if (recipe.geo && generateForm.elements.geo) {
-    generateForm.elements.geo.value = recipe.geo;
-  }
   renderRecipes();
   clearSuggestions();
   schedulePreview();
@@ -702,24 +687,6 @@ function buildResultSuggestions(quality, payload) {
   return items.slice(0, 3);
 }
 
-function buildGeoSuggestions(geoFit) {
-  if (!geoFit?.preferred_styles?.length) return [];
-  const items = [];
-  const preferred = geoFit.preferred_styles[0];
-  if (preferred && STYLE_OPTIONS[preferred]) {
-    items.push({
-      action: "style",
-      value: preferred,
-      label: `Geo tip: ${STYLE_LABEL[preferred] || preferred}`,
-    });
-  }
-  const hint = geoFit.recipe_hints?.[0];
-  if (hint && RECIPES[eventContext]?.[hint]) {
-    items.push({ action: "recipe", value: hint, label: `Load ${RECIPES[eventContext][hint].title}` });
-  }
-  return items;
-}
-
 function parseExisting(raw) {
   const parsed = JSON.parse(raw);
   if (!parsed.payouts) throw new Error("JSON needs a payouts array.");
@@ -748,34 +715,6 @@ function effectiveFxRates() {
   return base;
 }
 
-function poolEurEstimate(structure) {
-  const currency = (structure.currency || "EUR").toUpperCase();
-  const poolMajor = (structure.prize_pool_cents || 0) / 100;
-  if (currency === "EUR") return poolMajor;
-  const rates = effectiveFxRates();
-  const rate = rates[currency];
-  if (!rate || rate <= 0) return poolMajor;
-  return poolMajor / rate;
-}
-
-async function fetchGeoFit(structure, payload) {
-  const geo = generateForm.elements.geo?.value;
-  if (!geo) return null;
-  try {
-    return await api("/v1/payouts/geo-fit", {
-      geo,
-      currency: structure.currency,
-      prize_pool_cents: structure.prize_pool_cents,
-      winner_count: structure.winner_count,
-      top_prize_cents: structure.top_prize_cents,
-      style: structure.style,
-      pool_eur_estimate: poolEurEstimate(structure),
-    });
-  } catch {
-    return null;
-  }
-}
-
 async function refreshFxRates({ silent = false } = {}) {
   try {
     const res = await fetch("/v1/fx/rates?base=EUR");
@@ -801,13 +740,28 @@ function renderFxTable() {
   const hasOverrides = Object.keys(overrides).length > 0;
   const source = liveFxRates?.source || "—";
   if (badge) {
-    badge.textContent = hasOverrides ? `${source} + custom` : source;
+    const sourceLabel = liveFxRates?.source === "Kanggiten"
+      ? "Kanggiten"
+      : liveFxRates?.source === "ECB"
+        ? "ECB"
+        : "—";
+    badge.textContent = hasOverrides ? `${sourceLabel} + custom` : sourceLabel;
+    badge.title = liveFxRates?.source === "ECB"
+      ? "European Central Bank reference rates via Frankfurter"
+      : liveFxRates?.source === "Kanggiten"
+        ? "Kanggiten platform aggregator rates"
+        : "Exchange rate source";
     badge.classList.toggle("is-custom", hasOverrides);
   }
   if (meta) {
+    const sourceName = liveFxRates?.source === "Kanggiten"
+      ? "Kanggiten platform"
+      : liveFxRates?.source === "ECB"
+        ? "ECB (Frankfurter)"
+        : "not loaded";
     meta.textContent = liveFxRates
-      ? `Base ${liveFxRates.base || "EUR"} · as of ${liveFxRates.as_of}. Edit a rate to override for planning.`
-      : "Base EUR. Refresh to load live ECB rates, or type custom rates.";
+      ? `Source: ${sourceName} · base ${liveFxRates.base || "EUR"} · as of ${liveFxRates.as_of}. Edit a rate to override for planning.`
+      : "Base EUR. Refresh to load live ECB rates (Frankfurter), or type custom rates. Kanggiten when configured on server.";
   }
   const codes = Object.keys(CURRENCY_SYMBOLS).filter((c) => c !== "EUR");
   const rates = effectiveFxRates();
@@ -934,7 +888,7 @@ function summaryHtml(structure, quality, extra = "", normalized = null) {
     ${tableHtml(structure)}`;
 }
 
-function resultHeadlineHtml(structure, quality, normalized = null, geoFit = null) {
+function resultHeadlineHtml(structure, quality, normalized = null) {
   const currency = structure.currency;
   const pool = money(structure.prize_pool_cents, currency);
   const first = money(structure.top_prize_cents, currency);
@@ -944,9 +898,6 @@ function resultHeadlineHtml(structure, quality, normalized = null, geoFit = null
     ? `<span class="headline-chip">${money(normalized.guarantee_cents, currency)} guarantee</span>
        <span class="headline-chip">+ ${money(normalized.contribution_cents, currency)} bets</span>`
     : "";
-  const geoChip = geoFit
-    ? `<span class="headline-chip headline-geo" title="${(geoFit.advice || []).join(" · ")}">Geo ${Number(geoFit.score).toFixed(0)} · ${geoFit.geo_title}</span>`
-    : "";
   return `
     <div class="result-headline">
       ${guarantee}
@@ -955,17 +906,10 @@ function resultHeadlineHtml(structure, quality, normalized = null, geoFit = null
       <span class="headline-chip">${structure.winner_count} paid</span>
       <span class="headline-chip">${style}</span>
       <span class="headline-chip headline-quality" title="${KPI_HELP.quality}">Q ${score}</span>
-      ${geoChip}
     </div>`;
 }
 
-function analysisPanelHtml(structure, quality, normalized = null, geoFit = null) {
-  const geoBlock = geoFit ? `
-    <div class="geo-fit-panel">
-      <p class="overline">Geo fit · ${geoFit.geo_title} · ${Number(geoFit.score).toFixed(0)}</p>
-      <div class="metrics">${metricBars(geoFit.breakdown)}</div>
-      <ul class="flags geo-advice">${(geoFit.advice || []).map((a) => `<li>${a}</li>`).join("")}</ul>
-    </div>` : "";
+function analysisPanelHtml(structure, quality, normalized = null) {
   return `
     <div class="summary">
       <div class="score">${tipLabel('<span class="overline">Quality</span>', KPI_HELP.quality)}<b>${Number(quality.score).toFixed(0)}</b></div>
@@ -974,20 +918,19 @@ function analysisPanelHtml(structure, quality, normalized = null, geoFit = null)
       </div>
     </div>
     <div class="metrics">${metricBars(quality.metrics)}</div>
-    ${geoBlock}
     ${distributionVizHtml(structure)}`;
 }
 
-function generateResultsHtml(structure, quality, extra = "", normalized = null, geoFit = null) {
+function generateResultsHtml(structure, quality, extra = "", normalized = null) {
   return `
-    ${resultHeadlineHtml(structure, quality, normalized, geoFit)}
+    ${resultHeadlineHtml(structure, quality, normalized)}
     <section class="ladder-primary" aria-label="Prize ladder">
       ${tableHtml(structure)}
       ${extra}
     </section>
     <section class="analysis-panel" aria-label="Quality and distribution">
       <h2 class="analysis-heading">Quality &amp; distribution</h2>
-      ${analysisPanelHtml(structure, quality, normalized, geoFit)}
+      ${analysisPanelHtml(structure, quality, normalized)}
     </section>`;
 }
 
@@ -1111,7 +1054,7 @@ async function runGenerate({ silent = false } = {}) {
 
 function renderGenerate(target, result, payload, normalized = null) {
   const candidates = result.candidates || [];
-  const paint = async (index) => {
+  const paint = (index) => {
     const candidate = candidates[index];
     const structure = candidate.structure;
     const chips = candidates.map((c, i) =>
@@ -1121,8 +1064,6 @@ function renderGenerate(target, result, payload, normalized = null) {
       ...(candidate.validation.errors || []).map((e) => e.message),
       ...(structure.warnings || []),
     ];
-    const geoFit = await fetchGeoFit(structure, payload);
-    lastGeoFit = geoFit;
     target.innerHTML = `
       <div class="result-toolbar">
         <div class="result-actions export-menu">
@@ -1141,10 +1082,9 @@ function renderGenerate(target, result, payload, normalized = null) {
         candidate.quality,
         flags.length ? `<ul class="flags">${flags.map((f) => `<li>${f}</li>`).join("")}</ul>` : "",
         normalized,
-        geoFit,
       )}
     `;
-    updateResultsHeader(structure, candidate.quality, normalized, geoFit);
+    updateResultsHeader(structure, candidate.quality, normalized);
     $$(".chip[data-idx]", target).forEach((chip) => chip.addEventListener("click", () => paint(Number(chip.dataset.idx))));
     $$("[data-export-mode]", target).forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1160,10 +1100,7 @@ function renderGenerate(target, result, payload, normalized = null) {
       });
     });
     $("[data-download]", target)?.addEventListener("click", () => downloadTableExport(structure, normalized));
-    showSuggestions([
-      ...buildResultSuggestions(candidate.quality, payload),
-      ...buildGeoSuggestions(geoFit),
-    ].slice(0, 4));
+    showSuggestions(buildResultSuggestions(candidate.quality, payload).slice(0, 4));
   };
   if (!candidates.length) {
     target.innerHTML = `<p class="flags">No candidate returned.</p>`;
@@ -1172,7 +1109,7 @@ function renderGenerate(target, result, payload, normalized = null) {
   paint(0);
 }
 
-function updateResultsHeader(structure, quality, normalized = null, geoFit = null) {
+function updateResultsHeader(structure, quality, normalized = null) {
   const subtitle = $("#view-subtitle");
   if (!subtitle || !structure) return;
   const currency = structure.currency;
@@ -1180,8 +1117,7 @@ function updateResultsHeader(structure, quality, normalized = null, geoFit = nul
   const first = money(structure.top_prize_cents, currency);
   const style = STYLE_LABEL[structure.style] || structure.style;
   const score = Number(quality.score).toFixed(0);
-  const geoBit = geoFit ? ` · Geo ${Number(geoFit.score).toFixed(0)} (${geoFit.geo_title})` : "";
-  subtitle.textContent = `${pool} pool · ${structure.winner_count} paid · ${first} to 1st · ${style} · Q ${score}${geoBit}`;
+  subtitle.textContent = `${pool} pool · ${structure.winner_count} paid · ${first} to 1st · ${style} · Q ${score}`;
 }
 
 function setView(name) {
@@ -1226,7 +1162,6 @@ $("#cumulative-pool").addEventListener("change", () => {
   generateForm.elements[name]?.addEventListener("input", schedulePreview);
   generateForm.elements[name]?.addEventListener("change", schedulePreview);
 });
-generateForm.elements.geo?.addEventListener("change", schedulePreview);
 $("#fx-refresh-btn")?.addEventListener("click", () => refreshFxRates());
 $("#fx-reset-btn")?.addEventListener("click", () => {
   saveFxOverrides({});

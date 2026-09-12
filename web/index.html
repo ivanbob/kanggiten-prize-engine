@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=geo-fx" />
+    <link rel="stylesheet" href="/assets/styles.css?v=currency-fx" />
   </head>
   <body>
     <div class="app">
@@ -67,15 +67,6 @@
                   <option value="CZK">CZK — Czechia</option>
                   <option value="TRY">TRY — Turkey</option>
                   <option value="PLN">PLN — Poland</option>
-                </select>
-              </label>
-              <label><span class="tip-label" title="Scores how well this ladder matches typical prize pools and payout shapes for the market. Heuristic until ops samples arrive.">Target geo</span>
-                <select name="geo" id="geo-select">
-                  <option value="">No geo fit</option>
-                  <option value="tier1_eu">Tier-1 EU</option>
-                  <option value="nordics">Nordics</option>
-                  <option value="cee">CEE</option>
-                  <option value="tr">Turkey</option>
                 </select>
               </label>
             </div>
@@ -158,7 +149,7 @@
                       <button type="button" class="btn ghost" id="fx-reset-btn">Reset overrides</button>
                     </div>
                   </div>
-                  <p class="micro" id="fx-meta">Base EUR. Live ECB rates; override any currency for local planning.</p>
+                  <p class="micro" id="fx-meta">Base EUR. Rates from ECB (via Frankfurter); override any currency for local planning. Kanggiten platform rates when configured.</p>
                   <div class="fx-table-wrap" id="fx-table"></div>
                 </div>
               </div>
@@ -235,6 +226,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=geo-fx"></script>
+    <script src="/assets/app.js?v=currency-fx"></script>
   </body>
 </html>
