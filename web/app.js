@@ -143,7 +143,7 @@ const CONTEXT_COPY = {
 };
 
 const COPY = {
-  generate: ["Prize ladder", "Pick a template — table updates live on the right."],
+  generate: ["Prize ladder", "Set pool and places — table updates live on the right."],
   analyze: ["Analyze ladder", "Paste a published table to score quality."],
   optimize: ["Optimize ladder", "Keep the contract. Clean the widget."],
   recalibrate: ["Recalibrate pool", "Same philosophy, new guarantee."],

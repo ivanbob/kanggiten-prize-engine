@@ -428,13 +428,15 @@ body {
 .legend-actual { border-color: var(--lime); }
 .legend-target { border-color: rgba(184, 179, 199, 0.55); border-style: dashed; }
 
-.advanced {
+.advanced,
+.templates-drawer {
   border: 1px solid var(--violet-20);
   border-radius: 12px;
   padding: 0 12px;
   background: rgba(20, 10, 36, 0.35);
 }
-.advanced summary {
+.advanced summary,
+.templates-drawer summary {
   cursor: pointer;
   list-style: none;
   padding: 12px 0;
@@ -444,14 +446,18 @@ body {
   color: var(--ash);
   font-weight: 600;
 }
-.advanced summary::-webkit-details-marker { display: none; }
-.advanced summary::after {
+.advanced summary::-webkit-details-marker,
+.templates-drawer summary::-webkit-details-marker { display: none; }
+.advanced summary::after,
+.templates-drawer summary::after {
   content: "+";
   float: right;
   color: var(--lime);
 }
-.advanced[open] summary::after { content: "–"; }
-.advanced-body {
+.advanced[open] summary::after,
+.templates-drawer[open] summary::after { content: "–"; }
+.advanced-body,
+.templates-drawer-body {
   display: flex;
   flex-direction: column;
   gap: 12px;

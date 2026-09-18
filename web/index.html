@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Maven+Pro:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/styles.css?v=currency-fx" />
+    <link rel="stylesheet" href="/assets/styles.css?v=inputs-first" />
   </head>
   <body>
     <div class="app">
@@ -26,7 +26,7 @@
           </div>
           <div class="page-intro">
             <h1 id="view-title">Prize ladder</h1>
-            <p class="page-subtitle" id="view-subtitle">Pick a template — table updates live on the right.</p>
+            <p class="page-subtitle" id="view-subtitle">Set pool and places — table updates live on the right.</p>
           </div>
         </header>
 
@@ -37,15 +37,6 @@
               <button type="button" class="segment-btn" data-context="ticketed">Ticketed</button>
             </div>
             <p class="lede" id="context-hint">Guaranteed pool. Paid places you set. No buy-in, no field size — this is not a poker table.</p>
-
-            <div class="template-save">
-              <label>Save as team template
-                <input id="template-name" type="text" placeholder="e.g. Brand X daily €50k" maxlength="80" />
-              </label>
-              <button type="button" class="btn secondary" id="save-template-btn">Save template</button>
-            </div>
-
-            <div class="recipes" id="recipe-list" role="group" aria-label="Race templates"></div>
 
             <label class="toggle toggle-stacked" data-when="slot" id="known-field-row">
               <span class="toggle-row">
@@ -115,6 +106,24 @@
               </select>
             </label>
 
+            <div class="suggestions" id="generate-suggestions" hidden></div>
+
+            <button class="btn primary" type="submit" id="generate-submit">Refresh table</button>
+            <p class="micro">Preview updates automatically. Ctrl + Enter refreshes. Pool is paid exactly.</p>
+
+            <details class="templates-drawer" id="templates-drawer">
+              <summary>Templates &amp; presets</summary>
+              <div class="templates-drawer-body">
+                <div class="template-save">
+                  <label>Save as team template
+                    <input id="template-name" type="text" placeholder="e.g. Brand X daily €50k" maxlength="80" />
+                  </label>
+                  <button type="button" class="btn secondary" id="save-template-btn">Save template</button>
+                </div>
+                <div class="recipes" id="recipe-list" role="group" aria-label="Race templates"></div>
+              </div>
+            </details>
+
             <details class="advanced" id="advanced-fields">
               <summary>Advanced</summary>
               <div class="advanced-body">
@@ -154,11 +163,6 @@
                 </div>
               </div>
             </details>
-
-            <div class="suggestions" id="generate-suggestions" hidden></div>
-
-            <button class="btn primary" type="submit" id="generate-submit">Refresh table</button>
-            <p class="micro">Preview updates automatically. Ctrl + Enter refreshes. Pool is paid exactly.</p>
           </form>
 
           <div class="results" id="generate-results" hidden aria-live="polite"></div>
@@ -226,6 +230,6 @@
       </main>
     </div>
     <div class="toast" id="toast" hidden></div>
-    <script src="/assets/app.js?v=currency-fx"></script>
+    <script src="/assets/app.js?v=inputs-first"></script>
   </body>
 </html>
