@@ -32,10 +32,11 @@ const CURRENCY_SYMBOLS = {
 };
 
 const FX_OVERRIDE_KEY = "kanggiten-fx-overrides-v1";
+const FX_CACHE_KEY = "kanggiten-fx-cache-v1";
 const EXPORT_MODE_KEY = "kanggiten-export-mode-v1";
 
 let exportMode = localStorage.getItem(EXPORT_MODE_KEY) || "grouped";
-let liveFxRates = null; // { base, rates, as_of, source }
+let liveFxRates = null; // { base, rates, as_of, source, stale? }
 
 const STYLE_OPTIONS = {
   balanced: {
@@ -606,6 +607,7 @@ function loadRecipe(id) {
   fillForm(generateForm, recipe.values);
   renderRecipes();
   clearSuggestions();
+  updatePoolEurHint();
   schedulePreview();
 }
 
@@ -705,6 +707,23 @@ function saveFxOverrides(map) {
   localStorage.setItem(FX_OVERRIDE_KEY, JSON.stringify(map));
 }
 
+function loadCachedFxRates() {
+  try {
+    const raw = localStorage.getItem(FX_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedFxRates(data) {
+  try {
+    localStorage.setItem(FX_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore quota */
+  }
+}
+
 function effectiveFxRates() {
   const base = liveFxRates?.rates ? { ...liveFxRates.rates } : { EUR: 1 };
   const overrides = loadFxOverrides();
@@ -715,6 +734,56 @@ function effectiveFxRates() {
   return base;
 }
 
+function formatEurApprox(amountEur) {
+  if (!Number.isFinite(amountEur)) return "—";
+  return amountEur.toLocaleString(undefined, {
+    minimumFractionDigits: amountEur < 100 && amountEur % 1 ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+function poolToEur(poolMajor, currency) {
+  const code = (currency || "EUR").toUpperCase();
+  if (code === "EUR") return { eur: poolMajor, rate: 1, custom: false };
+  const overrides = loadFxOverrides();
+  const rates = effectiveFxRates();
+  const rate = Number(rates[code]);
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return {
+    eur: poolMajor / rate,
+    rate,
+    custom: overrides[code] != null,
+  };
+}
+
+function updatePoolEurHint() {
+  const hint = $("#pool-eur-hint");
+  if (!hint || !generateForm) return;
+  const currency = (generateForm.elements.currency?.value || "EUR").toUpperCase();
+  const pool = Number(generateForm.elements.prize_pool?.value);
+  if (currency === "EUR" || !Number.isFinite(pool) || pool <= 0) {
+    hint.hidden = true;
+    hint.textContent = "";
+    return;
+  }
+  const converted = poolToEur(pool, currency);
+  if (!converted) {
+    hint.hidden = false;
+    hint.innerHTML = `EUR equivalent unavailable — open <b>Advanced → Exchange rates</b> and refresh.`;
+    return;
+  }
+  const source = converted.custom
+    ? "custom rate"
+    : liveFxRates?.source === "Kanggiten"
+      ? "Kanggiten"
+      : "ECB";
+  const stale = liveFxRates?.stale ? " · cached" : "";
+  const asOf = liveFxRates?.as_of ? ` · ${liveFxRates.as_of}` : "";
+  hint.hidden = false;
+  hint.innerHTML = `≈ <strong>€${formatEurApprox(converted.eur)}</strong>
+    <span class="fx-rate-meta">· 1 EUR = ${converted.rate} ${currency} · ${source}${asOf}${stale}</span>`;
+}
+
 async function refreshFxRates({ silent = false } = {}) {
   try {
     const res = await fetch("/v1/fx/rates?base=EUR");
@@ -723,10 +792,20 @@ async function refreshFxRates({ silent = false } = {}) {
       throw new Error(typeof data.detail === "string" ? data.detail : "FX fetch failed");
     }
     liveFxRates = data;
+    saveCachedFxRates(data);
     renderFxTable();
-    if (!silent) toast(`FX updated · ${data.source} · ${data.as_of}`, true);
+    updatePoolEurHint();
+    if (!silent) {
+      const staleNote = data.stale ? " (cached)" : "";
+      toast(`FX updated · ${data.source}${staleNote} · ${data.as_of}`, true);
+    }
   } catch (err) {
+    if (!liveFxRates) {
+      const cached = loadCachedFxRates();
+      if (cached?.rates) liveFxRates = { ...cached, stale: true };
+    }
     renderFxTable();
+    updatePoolEurHint();
     if (!silent) toast(err.message || "Could not load FX rates");
   }
 }
@@ -738,16 +817,18 @@ function renderFxTable() {
   if (!wrap) return;
   const overrides = loadFxOverrides();
   const hasOverrides = Object.keys(overrides).length > 0;
-  const source = liveFxRates?.source || "—";
   if (badge) {
     const sourceLabel = liveFxRates?.source === "Kanggiten"
       ? "Kanggiten"
       : liveFxRates?.source === "ECB"
         ? "ECB"
         : "—";
-    badge.textContent = hasOverrides ? `${sourceLabel} + custom` : sourceLabel;
+    const staleTag = liveFxRates?.stale ? " · cached" : "";
+    badge.textContent = hasOverrides
+      ? `${sourceLabel} + custom${staleTag}`
+      : `${sourceLabel}${staleTag}`;
     badge.title = liveFxRates?.source === "ECB"
-      ? "European Central Bank reference rates via Frankfurter"
+      ? "European Central Bank reference rates via Frankfurter (daily)"
       : liveFxRates?.source === "Kanggiten"
         ? "Kanggiten platform aggregator rates"
         : "Exchange rate source";
@@ -760,7 +841,7 @@ function renderFxTable() {
         ? "ECB (Frankfurter)"
         : "not loaded";
     meta.textContent = liveFxRates
-      ? `Source: ${sourceName} · base ${liveFxRates.base || "EUR"} · as of ${liveFxRates.as_of}. Edit a rate to override for planning.`
+      ? `Source: ${sourceName} · base ${liveFxRates.base || "EUR"} · as of ${liveFxRates.as_of}${liveFxRates.stale ? " (serving last good cache)" : ""}. Edit a rate to override for planning.`
       : "Base EUR. Refresh to load live ECB rates (Frankfurter), or type custom rates. Kanggiten when configured on server.";
   }
   const codes = Object.keys(CURRENCY_SYMBOLS).filter((c) => c !== "EUR");
@@ -794,6 +875,7 @@ function renderFxTable() {
       }
       saveFxOverrides(map);
       renderFxTable();
+      updatePoolEurHint();
       toast(`Saved ${code} rate override`, true);
       schedulePreview();
     });
@@ -804,6 +886,7 @@ function renderFxTable() {
       delete map[btn.dataset.fxClear];
       saveFxOverrides(map);
       renderFxTable();
+      updatePoolEurHint();
       schedulePreview();
     });
   });
@@ -898,10 +981,16 @@ function resultHeadlineHtml(structure, quality, normalized = null) {
     ? `<span class="headline-chip">${money(normalized.guarantee_cents, currency)} guarantee</span>
        <span class="headline-chip">+ ${money(normalized.contribution_cents, currency)} bets</span>`
     : "";
+  const poolMajor = (structure.prize_pool_cents || 0) / 100;
+  const eur = poolToEur(poolMajor, currency);
+  const eurChip = eur && (currency || "").toUpperCase() !== "EUR"
+    ? `<span class="headline-chip" title="Reference EUR equivalent from ${eur.custom ? "custom" : (liveFxRates?.source || "FX")} rate">≈ €${formatEurApprox(eur.eur)}</span>`
+    : "";
   return `
     <div class="result-headline">
       ${guarantee}
       <span class="headline-chip headline-chip-strong">${pool} pool</span>
+      ${eurChip}
       <span class="headline-chip">${first} to 1st</span>
       <span class="headline-chip">${structure.winner_count} paid</span>
       <span class="headline-chip">${style}</span>
@@ -1159,8 +1248,14 @@ $("#cumulative-pool").addEventListener("change", () => {
   schedulePreview();
 });
 ["prize_pool", "winners_value", "entrants", "contribution_rate", "expected_total_wager", "currency"].forEach((name) => {
-  generateForm.elements[name]?.addEventListener("input", schedulePreview);
-  generateForm.elements[name]?.addEventListener("change", schedulePreview);
+  generateForm.elements[name]?.addEventListener("input", () => {
+    if (name === "prize_pool" || name === "currency") updatePoolEurHint();
+    schedulePreview();
+  });
+  generateForm.elements[name]?.addEventListener("change", () => {
+    if (name === "prize_pool" || name === "currency") updatePoolEurHint();
+    schedulePreview();
+  });
 });
 $("#fx-refresh-btn")?.addEventListener("click", () => refreshFxRates());
 $("#fx-reset-btn")?.addEventListener("click", () => {
@@ -1267,6 +1362,8 @@ document.addEventListener("keydown", (event) => {
 
 renderStyleCards();
 renderRecipes();
+liveFxRates = loadCachedFxRates();
 renderFxTable();
+updatePoolEurHint();
 refreshFxRates({ silent: true });
 loadRecipe("flash");

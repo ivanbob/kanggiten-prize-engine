@@ -5,6 +5,7 @@ from payout_engine.fx.providers import (
     FxProvider,
     FxRates,
     KanggitenFxProvider,
+    clear_fx_cache,
     get_default_provider,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "FxProvider",
     "FxRates",
     "KanggitenFxProvider",
+    "clear_fx_cache",
     "get_default_provider",
 ]

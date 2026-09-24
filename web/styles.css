@@ -191,11 +191,19 @@ body {
 .fx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .fx-table th, .fx-table td { padding: 6px 8px; border-bottom: 1px solid var(--violet-line); }
 .fx-table input[type="number"] { width: 100%; max-width: 140px; }
-.fx-custom-tag {
-  font-size: 10px;
+.fx-eur-hint {
+  margin: -4px 0 4px;
+  font-size: 13px;
+  color: var(--ash);
+  font-family: var(--font-mono);
+}
+.fx-eur-hint strong {
   color: var(--lime);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.fx-eur-hint .fx-rate-meta {
+  color: var(--ash);
+  opacity: 0.85;
 }
 .ladder-primary {
   margin-bottom: 16px;
