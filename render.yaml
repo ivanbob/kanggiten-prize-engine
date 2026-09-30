@@ -1,0 +1,11 @@
+# Render Blueprint — free Docker web service for Kanggiten Prize Engine.
+# Dashboard: New → Blueprint → connect this Git repo.
+services:
+  - type: web
+    name: kanggiten-prize-engine
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
